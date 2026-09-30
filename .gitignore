@@ -65,3 +65,4 @@ build.log
 
 # Test database
 test-db.js
+.vercel
