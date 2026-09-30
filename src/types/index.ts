@@ -130,7 +130,7 @@ export interface TropheeItem {
   id: string;
   title: string;
   competition: string;
-  year: number;
+  year: number | string;
   description: string;
   imageUrl?: string;
   type: 'TITRE' | 'COUPE' | 'DISTINCTION';

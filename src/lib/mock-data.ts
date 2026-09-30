@@ -6,19 +6,108 @@ import { Player, StaffMember, MatchItem, StandingItem, NewsItem, MediaItem, Trop
 export const CLUB_INFO = {
   name: 'Ngaoundéré Football Club',
   shortName: 'NFC',
-  nickname: 'L\'Étoile de l\'Adamaoua',
-  founded: 2008,
+  nickname: "L'Étoile de l'Adamaoua",
+  founded: 2004,
   stadium: 'Stade Municipal de Ngaoundéré (Cote 1392)',
-  capacity: '10 000 places',
-  president: 'El Hadj Mohamadou Bello',
-  headCoach: 'Coach Simplice Mbarga',
+  capacity: '1 000 places',
+  president: 'BEKONO NKOA WILDFRIED',
+  headCoach: 'MAMOUDOU DAIROU',
+  season: 'SAISON 2026-2027',
   city: 'Ngaoundéré, Adamaoua, Cameroun',
   colors: {
-    primary: '#1f5f3d', // Vert NFC
+    primary: '#008751', // Vert NFC
     secondary: '#ffffff', // Blanc Pur
-    accent: '#8cea5a', // Vert Clair NFC
+    accent: '#FFCC00', // Jaune Or NFC
   }
 };
+
+// ===================================
+// COMITÉ DIRECTEUR (LE CLUB) - SAISON 2026-2027
+// ===================================
+export const MANAGEMENT_DATA = [
+  {
+    id: 'm1',
+    badge: 'PRÉSIDENCE',
+    name: 'BEKONO NKOA WILDFRIED',
+    role: 'Président du Club',
+    desc: 'Président exécutif et guide de la vision stratégique du Ngaoundéré FC pour la Saison 2026-2027.',
+    highlight: true,
+  },
+  {
+    id: 'm2',
+    badge: 'VICE-PRÉSIDENCE',
+    name: 'ABDOU RAHIM',
+    role: 'Vice-Président',
+    desc: 'Supervise les affaires institutionnelles, les partenariats et le soutien stratégique aux opérations.',
+    highlight: false,
+  },
+  {
+    id: 'm3',
+    badge: 'COORDINATION GÉNÉRALE',
+    name: 'TCHAKOUTE ROGER',
+    role: 'Coordonnateur Général',
+    desc: 'Garant de l\'efficacité opérationnelle, administrative et logistique globale du club.',
+    highlight: false,
+  },
+  {
+    id: 'm4',
+    badge: 'DIRECTION TECHNIQUE',
+    name: 'NGUE NGUE NTEP',
+    role: 'Directeur Technique',
+    desc: 'Architecte du projet de jeu, superviseur de l\'encadrement et de la politique sportive.',
+    highlight: false,
+  },
+  {
+    id: 'm5',
+    badge: 'DIRECTION SPORTIVE',
+    name: 'OMER TABA KOHLEUR',
+    role: 'Directeur Sportif',
+    desc: 'Responsable du recrutement, de la gestion de l\'effectif professionnel et du développement sportif.',
+    highlight: false,
+  },
+  {
+    id: 'm6',
+    badge: 'SECRÉTARIAT GÉNÉRAL',
+    name: 'KOUETE NJIPAP Hilaire',
+    role: 'Secrétaire Général',
+    desc: 'Chef des services administratifs, de la coordination des compétitions et du suivi juridique.',
+    highlight: false,
+  },
+];
+
+// ===================================
+// ENCADREMENT ACADÉMIE - SAISON 2026-2027
+// ===================================
+export const ACADEMY_STAFF_DATA = [
+  {
+    id: 'ac1',
+    name: 'EDWOOD RICHARD',
+    role: 'Responsable de l\'Académie',
+    detail: 'Directeur & Superviseur du Centre de Formation (Saison 2026-2027)',
+    badge: 'RESPONSABLE',
+  },
+  {
+    id: 'ac2',
+    name: 'YAYA ANDRÉ',
+    role: 'Entraîneur Académie',
+    detail: 'Encadrement Technique Jeunes & Détection (Saison 2026-2027)',
+    badge: 'ENTRAÎNEUR',
+  },
+  {
+    id: 'ac3',
+    name: 'MORBE MATURIN',
+    role: 'Entraîneur Académie',
+    detail: 'Encadrement Technique Jeunes & Formations (Saison 2026-2027)',
+    badge: 'ENTRAÎNEUR',
+  },
+  {
+    id: 'ac4',
+    name: 'MAIDOBA BERNADETTE ARMANDINE',
+    role: 'Entraîneure Académie',
+    detail: 'Encadrement Technique Pré-Formation & Jeunes (Saison 2026-2027)',
+    badge: 'ENTRAÎNEURE',
+  },
+];
 
 // ===================================
 // JOUEURS
@@ -187,56 +276,40 @@ export const PLAYERS_DATA: Player[] = [
 ];
 
 // ===================================
-// STAFF TECHNIQUE
+// STAFF TECHNIQUE ÉQUIPE PREMIÈRE - SAISON 2026-2027
 // ===================================
 export const STAFF_DATA: StaffMember[] = [
   {
     id: 's1',
-    initials: 'SM',
-    fullName: 'Coach Simplice Mbarga',
-    role: 'ENTRAÎNEUR CHEF',
-    detail: 'Licence A CAF • Au club depuis 2022',
+    initials: 'MD',
+    fullName: 'MAMOUDOU DAIROU',
+    role: 'COACH PRINCIPAL',
+    detail: 'Entraîneur Principal • Licence A CAF • Saison 2026-2027',
     bgColor: 'green',
   },
   {
     id: 's2',
-    initials: 'HA',
-    fullName: 'Hamidou Aliou',
-    role: 'ADJOINT',
-    detail: 'Ancien Capitaine NFC',
+    initials: 'AO',
+    fullName: 'ALI JEAN OTIS',
+    role: 'COACH ADJOINT',
+    detail: 'Entraîneur Adjoint • Saison 2026-2027',
     bgColor: 'dark',
   },
   {
     id: 's3',
-    initials: 'BM',
-    fullName: 'Dr. Bello Mohamadou',
-    role: 'MÉDECIN',
-    detail: 'Médecine du Sport',
-    bgColor: 'gray',
-  },
-  {
-    id: 's4',
-    initials: 'OK',
-    fullName: 'Ousmanou Kobo',
-    role: 'PRÉPARATEUR ATHLÉTIQUE',
-    detail: 'Spécialiste Haute Performance',
-    bgColor: 'green',
-  },
-  {
-    id: 's5',
-    initials: 'NA',
-    fullName: 'Njoya Arouna',
-    role: 'ENTRAÎNEUR DES GARDIENS',
-    detail: 'Ex-international U23 Cameroun',
+    initials: 'BB',
+    fullName: 'BABA BASILE',
+    role: 'COACH ADJOINT',
+    detail: 'Entraîneur Adjoint • Saison 2026-2027',
     bgColor: 'dark',
   },
   {
-    id: 's6',
-    initials: 'DM',
-    fullName: 'Diouf Malick',
-    role: 'ANALYSTE VIDÉO',
-    detail: 'Analyse tactique & Data',
-    bgColor: 'gray',
+    id: 's4',
+    initials: 'YO',
+    fullName: 'YOUSSOUFA OUMAROU',
+    role: 'PRÉPARATEUR PHYSIQUE',
+    detail: 'Préparation Physique & Athlétique • Saison 2026-2027',
+    bgColor: 'green',
   },
 ];
 
@@ -455,54 +528,56 @@ export const GALLERY_DATA: MediaItem[] = [
 // ===================================
 export const TROPHEES_DATA: TropheeItem[] = [
   {
-    id: 't1',
-    title: 'Champion de la Région Adamaoua',
+    id: 't-2008-2009',
+    title: 'Champion de l\'Adamaoua & Accession en Élite Two',
     competition: 'Championnat Régional de l\'Adamaoua',
-    year: 2022,
-    description: 'Le NFC remporte son 4ème titre régional consécutif et confirme sa domination dans le Grand Nord du Cameroun.',
+    year: '2008-2009',
+    description: 'Sacre régional marquant la première grande montée historique du club en MTN Élite Two.',
     imageUrl: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800&auto=format&fit=crop',
     type: 'TITRE',
   },
   {
-    id: 't2',
-    title: 'Champion de la Région Adamaoua',
-    competition: 'Championnat Régional de l\'Adamaoua',
-    year: 2019,
-    description: 'Troisième titre régional pour le NFC, marquant l\'ère de domination du club sous la présidence de El Hadj Mohamadou Bello.',
+    id: 't-2013-2014',
+    title: 'Champion Régional de l\'Adamaoua',
+    competition: 'Ligue Régionale de l\'Adamaoua',
+    year: '2013-2014',
+    description: 'Deuxième sacre de champion régional après un parcours sans faute.',
     type: 'TITRE',
   },
   {
-    id: 't3',
-    title: 'Champion de la Région Adamaoua',
+    id: 't-2016-2017',
+    title: 'Champion de l\'Adamaoua & Montée en Élite Two',
     competition: 'Championnat Régional de l\'Adamaoua',
-    year: 2016,
-    description: 'Deuxième sacre régional qui lance définitivement le projet professionnel du Ngaoundéré FC.',
+    year: '2016-2017',
+    description: 'Sacre magistral et deuxième accession du Ngaoundéré FC au championnat national professionnel Élite Two.',
+    imageUrl: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=800&auto=format&fit=crop',
     type: 'TITRE',
   },
   {
-    id: 't4',
-    title: 'Champion de la Région Adamaoua',
-    competition: 'Championnat Régional de l\'Adamaoua',
-    year: 2012,
-    description: 'Premier titre de champion régional pour le club, seulement 4 ans après sa fondation. Un exploit historique.',
+    id: 't-2021-2022',
+    title: 'Champion de l\'Adamaoua',
+    competition: 'Ligue Régionale de l\'Adamaoua',
+    year: '2021-2022',
+    description: 'Quatrième titre de champion de la région de l\'Adamaoua consolidant la suprématie des Vert et Blanc.',
     type: 'TITRE',
   },
   {
-    id: 't5',
-    title: 'Quart de Finale de la Coupe du Cameroun',
-    competition: 'Coupe du Cameroun FECAFOOT',
+    id: 't-jeunes-u17',
+    title: 'Champion du Tournoi de l\'Enfant Africain (U17)',
+    competition: 'Tournoi d\'Akono (Catégorie U17)',
     year: 2023,
-    description: 'Parcours héroïque avec des victoires retentissantes contre les grands clubs de Douala et Yaoundé avant de s\'incliner honorablement.',
-    imageUrl: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=800&auto=format&fit=crop',
+    description: 'Victoire éclatante des pépites de l\'Académie NFC à Akono, couronnant les jeunes espoirs du club au niveau national.',
+    imageUrl: 'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=800&auto=format&fit=crop',
     type: 'COUPE',
   },
   {
-    id: 't6',
-    title: 'Label Centre de Formation 5 Étoiles',
-    competition: 'Certification FECAFOOT',
-    year: 2021,
-    description: 'L\'académie NFC reçoit la distinction suprême de la FECAFOOT, reconnaissant l\'excellence de son programme de formation.',
-    type: 'DISTINCTION',
+    id: 't-jeunes-u19',
+    title: 'Vainqueur du Djamaor Challenge (U19)',
+    competition: 'Tournoi Garoua par Coton Sport (Catégorie U19)',
+    year: 2023,
+    description: 'Titre de prestige remporté à Garoua lors du Djamaor Challenge organisé par Coton Sport de Garoua.',
+    imageUrl: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=800&auto=format&fit=crop',
+    type: 'COUPE',
   },
 ];
 
