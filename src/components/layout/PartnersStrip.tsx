@@ -1,12 +1,12 @@
 import React from 'react';
 
 const partners = [
-  'SYNERGIE',
-  'MILLET',
-  'VELLEFEST',
-  'ARNOLIA',
-  'V&T',
-  'LE LOREC GROUPE',
+  'MTN CAMEROUN',
+  'FECAFOOT',
+  'SODECOTON',
+  'TRADEX',
+  'MEHANDA GREEN OIL',
+  'KSA',
 ];
 
 export const PartnersStrip: React.FC = () => {

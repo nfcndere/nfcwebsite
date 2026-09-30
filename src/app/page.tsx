@@ -2,25 +2,74 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Shield, Play, ChevronRight, ArrowRight, Trophy, Flame, Mail, Send, CheckCircle2, Star } from 'lucide-react';
+import { Shield, Play, Trophy, Mail, Send, CheckCircle2, Star, X, MessageCircle, Handshake, Building2 } from 'lucide-react';
 import NewsGrid from '@/components/sections/NewsGrid';
 import Partners from '@/components/sections/Partners';
 import NextMatchBanner from '@/components/sections/NextMatchBanner';
+import VideoPlayer from '@/components/ui/VideoPlayer';
 import StatsBar from '@/components/sections/StatsBar';
 import { SectionTag } from '@/components/ui/SectionTag';
 import { NEWS_DATA, MATCHES_DATA, STANDINGS_DATA } from '@/lib/mock-data';
 
+// Numéro WhatsApp partenariat
+const WHATSAPP_PARTENAIRE = '691616959';
+
+const NFC_TV_VIDEO = {
+  videoUrl: 'https://res.cloudinary.com/u9588m3i/video/upload/v1790743140/video5895481472965419044.mp4', // À remplacer par l'URL réelle
+  thumbnailUrl: 'https://res.cloudinary.com/u9588m3i/image/upload/v1790743348/galerie_baneer_2.jpg',
+  title: 'ENTRAINEMENT : La prise de temperature pour la nouvelle saison',
+  badge: 'GRAND FORMAT',
+  context: "Immersion session d'entraînement",
+};
+
 export default function HomePage() {
   const [email, setEmail] = useState('');
   const [newsletterSent, setNewsletterSent] = useState(false);
+  const [newsletterLoading, setNewsletterLoading] = useState(false);
+  const [isPartenaireModalOpen, setIsPartenaireModalOpen] = useState(false);
 
-  const handleNewsletter = (e: React.FormEvent) => {
+  // Formulaire partenaire
+  const [partenaireForm, setPartenaireForm] = useState({
+    nomSociete: '',
+    nomContact: '',
+    telephone: '',
+    email: '',
+    typePartenariat: 'Partenariat Principal',
+    message: '',
+  });
+
+  // Newsletter — sauvegarde en BD via API
+  const handleNewsletter = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
-      setNewsletterSent(true);
-      setEmail('');
-      setTimeout(() => setNewsletterSent(false), 4000);
-    }
+    if (!email) return;
+    setNewsletterLoading(true);
+    try {
+      await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+    } catch {}
+    setNewsletterSent(true);
+    setEmail('');
+    setNewsletterLoading(false);
+    setTimeout(() => setNewsletterSent(false), 5000);
+  };
+
+  // Soumission partenaire — redirige vers WhatsApp
+  const handlePartenaireSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const message = encodeURIComponent(
+      `Bonjour, je souhaite devenir partenaire du Ngaoundéré FC.\n\n` +
+      `🏢 Société : ${partenaireForm.nomSociete}\n` +
+      `👤 Contact : ${partenaireForm.nomContact}\n` +
+      `📞 Téléphone : ${partenaireForm.telephone}\n` +
+      `📧 Email : ${partenaireForm.email}\n` +
+      `🤝 Type de partenariat : ${partenaireForm.typePartenariat}\n\n` +
+      `📝 Message : ${partenaireForm.message || 'Pas de message supplémentaire.'}`
+    );
+    window.open(`https://wa.me/${WHATSAPP_PARTENAIRE}?text=${message}`, '_blank');
+    setIsPartenaireModalOpen(false);
   };
 
   return (
@@ -44,7 +93,7 @@ export default function HomePage() {
             {/* Tag */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[color:var(--nfc-yellow)] text-[color:var(--nfc-dark)] text-xs font-bold font-display uppercase animate-fade-in-up">
               <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--nfc-dark)] inline-block" />
-              <span>ÉQUIPE PRO • REGIONALE</span>
+              <span>ÉQUIPE PRO • LIGUE RÉGIONALE DE L'ADAMAOUA</span>
             </div>
 
             {/* Main Title */}
@@ -232,80 +281,24 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 7. NFC TV — AU CŒUR DU VESTIAIRE SECTION */}
-      <section className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto mb-8">
-          <SectionTag label="NFC TV & Contenu Vidéo" />
+      {/* Lecteur vidéo principal */}
+      <section className="bg-[color:var(--nfc-dark)] text-[color:var(--nfc-white)] p-8 shadow-xl m-8 space-y-6">
+        <div className="border-b border-gray-800 pb-4">
+          <span className="text-xs font-bold text-gray-400 uppercase font-display block">PORTAIL VIDÉO OFFICIEL</span>
+          <h2 className="font-display text-3xl font-extrabold uppercase">IMMERSION VESTIAIRE & VIDÉOS</h2>
         </div>
-        <div className="bg-[#0c130e] text-white p-6 sm:p-8 shadow-xl">
-          <div className="flex items-center justify-between mb-6 border-b border-gray-800 pb-4">
-            <div>
-              <span className="text-xs font-bold text-[color:var(--nfc-yellow)] uppercase font-display block">SÉRIE VIDÉO EXCLUSIVE</span>
-              <h2 className="font-display text-2xl sm:text-3xl font-extrabold uppercase">NFC TV • AU CŒUR DU VESTIAIRE</h2>
-            </div>
-            <Link href="/actualites" className="text-xs font-bold text-gray-400 hover:text-white flex items-center gap-1 font-display">
-              TOUTES LES VIDÉOS &rarr;
-            </Link>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
-            {/* Main Video Player box */}
-            <div className="lg:col-span-8 relative group rounded-xl overflow-hidden bg-black border border-gray-800">
-              <img
-                src="https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=1200&auto=format&fit=crop"
-                alt="Video thumbnail"
-                className="w-full h-200 sm:h-96 object-cover opacity-80"
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-[color:var(--nfc-yellow)] text-black flex items-center justify-center shadow-2xl cursor-pointer group-hover:scale-110 transition-transform">
-                  <Play className="w-8 h-8 fill-current ml-1" />
-                </div>
-              </div>
-              <div className="absolute bottom-0 inset-x-0 p-5 bg-gradient-to-t from-black via-black/80 to-transparent">
-                <span className="text-[10px] font-bold text-[color:var(--nfc-yellow)] uppercase font-display">GRAND FORMAT • 12 MIN</span>
-                <h3 className="font-display text-lg sm:text-xl font-bold text-white mt-1">
-                  INSIDE : L'IMMERSION COMPLÈTE DANS LE VESTIAIRE NANTAIS AVANT LE DERBY
-                </h3>
-              </div>
-            </div>
+        <div className="gap-8 items-center">
 
-            {/* Video List Sidebar */}
-            <div className="lg:col-span-4 space-y-4">
-              <div className="p-3 bg-gray-900 rounded-xl border border-gray-800 flex gap-3 hover:border-[#008751] hover:bg-[#008751]/10 transition-all duration-200 cursor-pointer">
-                <div className="w-24 h-16 bg-gray-800 rounded overflow-hidden shrink-0 relative">
-                  <img src="https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=300&auto=format&fit=crop" className="w-full h-full object-cover" />
-                  <Play className="w-4 h-4 text-white absolute inset-0 m-auto" />
-                </div>
-                <div>
-                  <h4 className="font-display text-xs font-bold text-white line-clamp-2">Conférence de presse du Coach Simplice Mbarga</h4>
-                  <span className="text-[10px] text-gray-400 font-mono">08:45</span>
-                </div>
-              </div>
-
-              <div className="p-3 bg-gray-900 rounded-lg border border-gray-800 flex gap-3 hover:border-[#008751] transition-colors cursor-pointer">
-                <div className="w-24 h-16 bg-gray-800 rounded overflow-hidden shrink-0 relative">
-                  <img src="https://images.unsplash.com/photo-1517466787929-bc90951d0974?q=80&w=300&auto=format&fit=crop" className="w-full h-full object-cover" />
-                  <Play className="w-4 h-4 text-white absolute inset-0 m-auto" />
-                </div>
-                <div>
-                  <h4 className="font-display text-xs font-bold text-white line-clamp-2">Les 5 plus beaux gestes du mois de septembre</h4>
-                  <span className="text-[10px] text-gray-400 font-mono">05:12</span>
-                </div>
-              </div>
-
-              <div className="p-3 bg-gray-900 rounded-lg border border-gray-800 flex gap-3 hover:border-[#008751] transition-colors cursor-pointer">
-                <div className="w-24 h-16 bg-gray-800 rounded overflow-hidden shrink-0 relative">
-                  <img src="https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=300&auto=format&fit=crop" className="w-full h-full object-cover" />
-                  <Play className="w-4 h-4 text-white absolute inset-0 m-auto" />
-                </div>
-                <div>
-                  <h4 className="font-display text-xs font-bold text-white line-clamp-2">Le résumé complet : Ngaoundéré FC 2 - 1 Canon Yaoundé</h4>
-                  <span className="text-[10px] text-gray-400 font-mono">14:30</span>
-                </div>
-              </div>
-            </div>
-
+          {/* Lecteur vidéo principal */}
+          <div className="lg:col-span-7">
+            <VideoPlayer
+              videoUrl={NFC_TV_VIDEO.videoUrl}
+              thumbnailUrl={NFC_TV_VIDEO.thumbnailUrl}
+              title={NFC_TV_VIDEO.title}
+              badge={NFC_TV_VIDEO.badge}
+              context={NFC_TV_VIDEO.context}
+            />
           </div>
         </div>
       </section>
@@ -360,9 +353,10 @@ export default function HomePage() {
                     />
                     <button
                       type="submit"
-                      className="bg-[color:var(--nfc-dark)] hover:bg-[#102016] text-white font-display font-extrabold text-xs px-6 py-2.5 rounded-lg uppercase tracking-wider transition-colors"
+                      disabled={newsletterLoading}
+                      className="bg-[color:var(--nfc-dark)] hover:bg-[#102016] text-white font-display font-extrabold text-xs px-6 py-2.5 uppercase tracking-wider transition-colors disabled:opacity-60"
                     >
-                      M'INSCRIRE
+                      {newsletterLoading ? 'ENVOI...' : "M'INSCRIRE"}
                     </button>
                   </form>
                 )}
@@ -374,16 +368,16 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row gap-6 items-start">
               <div className="sm:w-2/5 shrink-0">
                 <img
-                  src="https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=600&auto=format&fit=crop"
+                  src="https://res.cloudinary.com/u9588m3i/image/upload/v1790749936/stade3.jpg"
                   alt="Stade"
-                  className="w-full h-full object-cover aspect-[4/3] rounded-lg"
+                  className="w-full h-full object-cover aspect-[2/3] rounded-lg"
                 />
               </div>
 
               <div className="flex flex-col justify-between flex-grow gap-4">
                 <div>
                   <span className="text-[10px] uppercase text-[color:var(--nfc-green)] font-display font-bold">
-                    STADE DE L'ADAMAOUA
+                    STADE DE NDOUMBE OUMAR 
                   </span>
 
                   <div className="flex items-center gap-3 mt-1 mb-3">
@@ -396,18 +390,91 @@ export default function HomePage() {
                   </div>
 
                   <h4 className="font-display text-base sm:text-lg font-bold text-[#0c130e] uppercase leading-tight">
-                    ORGANISEZ VOTRE ÉVÉNEMENT PROFESSIONNEL EN TOUTE SÉRÉNITÉ DANS DES LIEUX D'EXCEPTION
+                    Devenez partenaire officiel du Ngaoundéré FC et bénéficiez d'une visibilité maximale lors de nos matchs et événements.
                   </h4>
                 </div>
 
-                <button className="self-start bg-[color:var(--nfc-green)] hover:bg-[color:var(--nfc-green-dark)] text-[color:var(--nfc-dark)] font-display font-extrabold text-xs px-5 py-2.5 uppercase tracking-wider transition-colors">
-                  JE DÉCOUVRE
+                <button
+                  onClick={() => setIsPartenaireModalOpen(true)}
+                  className="self-start bg-[color:var(--nfc-green)] hover:bg-[color:var(--nfc-green-dark)] text-white font-display font-extrabold text-xs px-5 py-2.5 uppercase tracking-wider transition-colors flex items-center gap-2"
+                >
+                  <Handshake className="w-4 h-4" />
+                  DEVENIR PARTENAIRE
                 </button>
               </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* ===== MODAL PARTENAIRE ===== */}
+      {isPartenaireModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setIsPartenaireModalOpen(false)}
+        >
+          <div
+            className="bg-white max-w-lg w-full p-7 shadow-2xl animate-fade-in-up space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div>
+                <span className="section-tag">PARTENARIAT NFC</span>
+                <h3 className="font-display font-bold text-gray-900 text-base">DEVENEZ PARTENAIRE OFFICIEL</h3>
+              </div>
+              <button onClick={() => setIsPartenaireModalOpen(false)} className="p-1 hover:bg-gray-100 text-gray-500">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500 leading-relaxed">
+              Remplissez ce formulaire et notre responsable partenariats vous contactera via WhatsApp pour discuter des modalités de collaboration.
+            </p>
+
+            <form onSubmit={handlePartenaireSubmit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700 uppercase font-display">Société *</label>
+                  <input type="text" required placeholder="Nom de votre entreprise" className="form-input" value={partenaireForm.nomSociete} onChange={(e) => setPartenaireForm(p => ({...p, nomSociete: e.target.value}))} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700 uppercase font-display">Votre Nom *</label>
+                  <input type="text" required placeholder="Nom complet" className="form-input" value={partenaireForm.nomContact} onChange={(e) => setPartenaireForm(p => ({...p, nomContact: e.target.value}))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700 uppercase font-display">Téléphone *</label>
+                  <input type="tel" required placeholder="+237 6..." className="form-input" value={partenaireForm.telephone} onChange={(e) => setPartenaireForm(p => ({...p, telephone: e.target.value}))} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700 uppercase font-display">Email</label>
+                  <input type="email" placeholder="votre@email.com" className="form-input" value={partenaireForm.email} onChange={(e) => setPartenaireForm(p => ({...p, email: e.target.value}))} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-700 uppercase font-display">Type de Partenariat *</label>
+                <select className="form-input" value={partenaireForm.typePartenariat} onChange={(e) => setPartenaireForm(p => ({...p, typePartenariat: e.target.value}))}>
+                  <option>Partenariat Principal</option>
+                  <option>Sponsor Maillot</option>
+                  <option>Partenaire Institutionnel</option>
+                  <option>Partenaire Médias</option>
+                  <option>Partenaire Local</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-700 uppercase font-display">Message</label>
+                <textarea rows={3} placeholder="Décrivez brièvement votre projet de partenariat..." className="form-input resize-none" value={partenaireForm.message} onChange={(e) => setPartenaireForm(p => ({...p, message: e.target.value}))} />
+              </div>
+              <button type="submit" className="btn-green w-full py-3 text-xs justify-center flex items-center gap-2 font-bold">
+                <MessageCircle className="w-4 h-4" />
+                CONTINUER SUR WHATSAPP &rarr;
+              </button>
+              <p className="text-center text-[10px] text-gray-400">Vous serez redirigé sur WhatsApp avec votre message prérempli.</p>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

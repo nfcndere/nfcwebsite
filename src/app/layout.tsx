@@ -8,8 +8,8 @@ import { SponsorsStrip } from '@/components/layout/SponsorsStrip';
 
 export const metadata: Metadata = {
   title: "Ngaoundéré Football Club (NFC) — Site Officiel",
-  description: "Site officiel du Ngaoundéré Football Club (NFC). Actualités, effectif, résultats, classement MTN Elite, et inscriptions à l'Académie de football à Ngaoundéré, Adamaoua, Cameroun.",
-  keywords: ["Ngaoundéré Football Club", "NFC", "Football Cameroun", "Adamaoua", "MTN Elite One", "Académie Football Ngaoundéré"],
+  description: "Site officiel du Ngaoundéré Football Club (NFC). Actualités, effectif, résultats, classement de la Ligue Régionale de l'Adamaoua, et inscriptions à l'Académie de football à Ngaoundéré, Adamaoua, Cameroun.",
+  keywords: ["Ngaoundéré Football Club", "NFC", "Football Cameroun", "Adamaoua", "Ligue Régionale de l'Adamaoua", "Académie Football Ngaoundéré"],
   openGraph: {
     title: "Ngaoundéré Football Club (NFC) — Site Officiel",
     description: "Le club phare de la région de l'Adamaoua. Actualités, effectif, calendrier et académie.",

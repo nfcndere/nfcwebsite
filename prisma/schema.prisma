@@ -3,16 +3,23 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
+// ===================================
+// Énumération des rôles utilisateurs
+// ===================================
 enum UserRole {
   ADMIN
   EDITOR
   USER
 }
 
+// ===================================
+// Utilisateur / Admin
+// ===================================
 model User {
   id           String   @id @default(uuid())
   name         String
@@ -26,23 +33,35 @@ model User {
   uploadedMedia Media[]
 }
 
+// ===================================
+// Média (Image / Vidéo) avec association joueur optionnelle
+// ===================================
 model Media {
-  id         String   @id @default(uuid())
-  provider   String
-  publicId   String   @unique
-  url        String
-  mimeType   String
-  width      Int?
-  height     Int?
-  size       Int?
-  variants   Json?
-  altText    String?
+  id           String   @id @default(uuid())
+  provider     String
+  publicId     String   @unique
+  url          String
+  mimeType     String
+  width        Int?
+  height       Int?
+  size         Int?
+  variants     Json?
+  altText      String?
+  album        String?     // Album galerie (ex: "Entraînements", "Saison 2025-2026")
+  title        String?     // Titre de l'asset
+  mediaType    String?     // "IMAGE" ou "VIDEO"
+  // Association optionnelle à un joueur (pour la page détail joueur)
+  playerId     String?
+  player       Player?     @relation(fields: [playerId], references: [id])
   uploadedById String?
-  uploadedBy User?    @relation(fields: [uploadedById], references: [id])
-  coverOf    Article[]
-  createdAt  DateTime @default(now())
+  uploadedBy   User?       @relation(fields: [uploadedById], references: [id])
+  coverOf      Article[]
+  createdAt    DateTime    @default(now())
 }
 
+// ===================================
+// Article / Actualité
+// ===================================
 model Article {
   id          String    @id @default(uuid())
   slug        String    @unique
@@ -54,38 +73,60 @@ model Article {
   authorId    String?
   author      User?     @relation(fields: [authorId], references: [id])
   category    String?
+  videoUrl    String?   // URL de la vidéo associée à l'article (YouTube, Vimeo, etc.)
   published   Boolean   @default(false)
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
 
+// ===================================
+// Joueur
+// ===================================
 model Player {
-  id         String   @id @default(uuid())
-  firstName  String
-  lastName   String
-  number     Int?
-  position   String?
-  nationality String?
-  bio        String?
-  photoId    String?
-  stats      Json?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String   @id @default(uuid())
+  firstName    String
+  lastName     String
+  number       Int?
+  position     String?  // GARDIEN | DEFENSEUR | MILIEU | ATTAQUANT
+  nationality  String?
+  bio          String?
+  photoId      String?
+  stats        Json?
+  isCaptain    Boolean  @default(false)
+  birthDate    String?
+  height       Int?
+  weight       Int?
+  joinedYear   Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Médias associés à ce joueur (galerie spécifique joueur)
+  media        Media[]
 }
 
+// ===================================
+// Match
+// ===================================
 model Match {
-  id         String   @id @default(uuid())
-  date       DateTime
-  homeTeam   String
-  awayTeam   String
-  homeScore  Int?
-  awayScore  Int?
-  events     Json?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String   @id @default(uuid())
+  date        DateTime
+  homeTeam    String
+  awayTeam    String
+  homeScore   Int?
+  awayScore   Int?
+  stadium     String?
+  competition String?
+  status      String   @default("PROGRAMME") // PROGRAMME | EN_COURS | TERMINE | REPORTE
+  summary     String?
+  events      Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
+// ===================================
+// Sponsor / Partenaire
+// ===================================
 model Sponsor {
   id       String   @id @default(uuid())
   name     String
@@ -94,24 +135,40 @@ model Sponsor {
   priority Int      @default(0)
 }
 
+// ===================================
+// Soumission de formulaire (académie, contact, newsletter, etc.)
+// ===================================
 model FormSubmission {
   id        String   @id @default(uuid())
-  type      String
-  payload   Json
+  type      String   // "ACADEMIE" | "NEWSLETTER" | "CONTACT" | "BILLETTERIE"
+  payload   Json     // Données complètes du formulaire (nom, email, besoins, etc.)
   ip        String?
   userAgent String?
   processed Boolean  @default(false)
   createdAt DateTime @default(now())
 }
 
-model EmailLog {
+// ===================================
+// Abonné Newsletter (emails stockés séparément pour facilité)
+// ===================================
+model NewsletterSubscriber {
   id        String   @id @default(uuid())
-  to        String
-  from      String
-  subject   String
-  body      String
-  provider  String
-  providerId String?
-  status    String
+  email     String   @unique
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
+}
+
+// ===================================
+// Log d'email envoyé
+// ===================================
+model EmailLog {
+  id         String   @id @default(uuid())
+  to         String
+  from       String
+  subject    String
+  body       String
+  provider   String
+  providerId String?
+  status     String
+  createdAt  DateTime @default(now())
 }

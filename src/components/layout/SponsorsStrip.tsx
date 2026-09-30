@@ -3,14 +3,14 @@
 import React from 'react';
 
 const sponsorNames = [
-  'SYNERGIE',
-  'MACRON',
-  'MILLET',
-  'VELLEFEST',
-  'NANTES MÉTROPOLE',
-  'CRÉDIT MUTUEL',
-  'FRUIDIS',
-  'SPORTINGSOLS',
+  'MTN CAMEROUN',
+  'FECAFOOT',
+  'SODECOTON',
+  'TRADEX',
+  'MEHANDA GREEN OIL',
+  'KSA',
+  'SABC',
+  'CAMTEL',
 ];
 
 export const SponsorsStrip: React.FC<{ logos?: string[] }> = ({ logos }) => {

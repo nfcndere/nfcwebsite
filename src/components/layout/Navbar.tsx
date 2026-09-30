@@ -170,9 +170,9 @@ export const Navbar = () => {
             </span>
 
             <span className="text-gray-300 hidden sm:block truncate">
-              MTN ELITE 1 — J22 :{' '}
+              LIGUE RÉGIONALE ADAMAOUA — J14 :{' '}
               <strong className="text-white">
-                NGAOUNDÉRÉ FC vs COTONSPORT DE GAROUA
+                NGAOUNDÉRÉ FC vs NGAOUNDÉRÉ UNIV FC
               </strong>
             </span>
 

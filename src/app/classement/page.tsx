@@ -9,15 +9,17 @@ import { Shield, Trophy, TrendingUp, Info } from 'lucide-react';
 import Image from 'next/image';
 
 export default function ClassementPage() {
+  const nfcStanding = STANDINGS_DATA.find((team) => team.teamName.includes('Ngaoundéré')) ?? STANDINGS_DATA[0];
+
   return (
     <div className="bg-[color:var(--nfc-bg)] text-[color:var(--nfc-text)] font-sans space-y-12 pb-20">
 
       {/* PAGE HERO HEADER WITH BACKGROUND IMAGE */}
       <PageHeader
-        tag="MTN ELITE ONE — SAISON 2025-2026"
+        tag="LIGUE RÉGIONALE DE L'ADAMAOUA — SAISON 2025-2026"
         title="CLASSEMENT"
         titleHighlight="OFFICIEL"
-        description="Suivez la position du Ngaoundéré Football Club au sein du championnat de première division camerounaise."
+        description="Suivez la position du Ngaoundéré Football Club au sein du championnat de la Ligue Régionale de l'Adamaoua."
         backgroundImageUrl="https://images.unsplash.com/photo-1517466787929-bc90951d0974?q=80&w=1600&auto=format&fit=crop"
         
         badgeContent={
@@ -25,9 +27,11 @@ export default function ClassementPage() {
             <div className="relative w-14 h-14 rounded-full overflow-hidden ring-2 ring-[color:var(--nfc-green)] shadow-md mx-auto mb-2">
               <Image src="/logo.png" alt="NFC Crest" fill className="object-contain" />
             </div>
-            <span className="badge-category badge-green text-[9px] mb-2 inline-block">2ÈME POSITION</span>
-            <h3 className="font-display text-2xl font-extrabold text-white">44 PTS</h3>
-            <p className="text-xs text-gray-400 mt-1">2ème Meilleure Attaque (+19)</p>
+            <span className="badge-category badge-green text-[9px] mb-2 inline-block font-bold">
+              {nfcStanding.position}{nfcStanding.position === 1 ? 'ÈRE' : 'ÈME'} POSITION
+            </span>
+            <h3 className="font-display text-2xl font-extrabold text-white">{nfcStanding.points} PTS</h3>
+            <p className="text-xs text-gray-400 mt-1">Différence de buts : {nfcStanding.goalDifference > 0 ? `+${nfcStanding.goalDifference}` : nfcStanding.goalDifference}</p>
           </div>
         }
       />
@@ -166,7 +170,7 @@ export default function ClassementPage() {
             </div>
             <div>
               <h4 className="font-display font-bold text-gray-900 text-sm">2ÈME ATTAQUE DU CHAMPIONNAT</h4>
-              <p className="text-xs text-gray-500 mt-1">34 buts inscrits en 21 rencontres de MTN Elite One.</p>
+              <p className="text-xs text-gray-500 mt-1">34 buts inscrits en 13 rencontres de Ligue Régionale de l'Adamaoua.</p>
             </div>
           </div>
 

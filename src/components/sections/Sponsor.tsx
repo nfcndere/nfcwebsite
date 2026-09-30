@@ -2,33 +2,32 @@ const SPONSORS = [
   {
     category: 'Partenaires Majeurs',
     logos: [
-      { name: 'Synergie', type: 'synergie' },
-      { name: 'Macron', type: 'macron' },
+      { name: 'MTN Cameroun', type: 'mtn' },
+      { name: 'FECAFOOT', type: 'fecafoot' },
     ],
   },
   {
     category: 'Partenaires Premium',
     logos: [
-      { name: 'Millet', type: 'millet' },
-      { name: 'Vellefest', type: 'vellefest' },
-      { name: 'Arnolia', type: 'arnolia' },
+      { name: 'Sodecoton', type: 'sodecoton' },
+      { name: 'Tradex', type: 'tradex' },
+      { name: 'Brasseries du Cameroun', type: 'sabc' },
     ],
   },
   {
     category: 'Partenaires Officiels',
     logos: [
-      { name: 'V&T', type: 'vt' },
-      { name: 'Nantes Métropole', type: 'nantes' },
-      { name: 'Crédit Mutuel', type: 'credit-mutuel' },
+      { name: 'Mehanda Green Oil', type: 'mehanda' },
+      { name: 'CAMTEL', type: 'camtel' },
+      { name: 'KSA', type: 'ksa' },
     ],
   },
   {
     category: 'Fournisseurs Officiels',
     logos: [
-      { name: 'Le Lorec Groupe', type: 'le-lorec' },
-      { name: 'Pautric', type: 'pautric' },
-      { name: 'Fruidis', type: 'fruidis' },
-      { name: 'Sportingsols', type: 'sportingsols' },
+      { name: 'Olympique Mainganga', type: 'mainganga' },
+      { name: 'Real Asong', type: 'real-asong' },
+      { name: 'Sketch', type: 'sketch' },
     ],
   },
 ];
@@ -38,116 +37,70 @@ function LogoText({ type, name }: { type: string; name: string }) {
     'flex items-center justify-center grayscale opacity-70 hover:opacity-100 transition-opacity duration-300 cursor-pointer max-h-12';
 
   switch (type) {
-    case 'synergie':
+    case 'mtn':
       return (
         <div className={`${baseClasses} flex-col`}>
-          <span className="text-[15px] font-black tracking-tight text-gray-700">SYNERGIE</span>
-          <span className="text-[7px] font-bold uppercase tracking-[0.18em] text-gray-500">
-            INTERIM - RECRUTEMENT
+          <span className="text-[18px] font-black tracking-tight text-[#FFCC00] bg-black px-2 py-0.5 rounded">MTN</span>
+          <span className="text-[7px] font-bold uppercase tracking-[0.18em] text-gray-500 mt-0.5">
+            EVERYWHERE YOU GO
           </span>
         </div>
       );
 
-    case 'macron':
-      return (
-        <div className={`${baseClasses} gap-2`}>
-          <span className="text-[10px] text-gray-600">◢</span>
-          <span className="text-[18px] font-black lowercase tracking-tight text-gray-700">macron</span>
-        </div>
-      );
-
-    case 'millet':
+    case 'fecafoot':
       return (
         <div className={`${baseClasses} flex-col`}>
-          <span className="text-[16px] font-bold tracking-[0.08em] text-gray-700">MILLET</span>
-          <span className="text-[7px] italic text-gray-500">Fenêtres et façades</span>
-        </div>
-      );
-
-    case 'vellefest':
-      return (
-        <div className={`${baseClasses} flex-col`}>
-          <span className="text-[22px] font-serif italic underline decoration-gray-500 underline-offset-4 text-gray-700">
-            VELLEFEST
+          <span className="text-[15px] font-black tracking-widest text-[#008751]">FECAFOOT</span>
+          <span className="text-[7px] font-bold uppercase tracking-[0.15em] text-gray-500">
+            FÉDÉRATION CAMEROUNAISE DE FOOTBALL
           </span>
         </div>
       );
 
-    case 'arnolia':
+    case 'sodecoton':
       return (
-        <div className={`${baseClasses}`}>
-          <span className="text-[18px] font-light tracking-[0.28em] text-gray-700">ARNOLIA</span>
+        <div className={`${baseClasses} flex-col`}>
+          <span className="text-[16px] font-extrabold tracking-[0.1em] text-emerald-800">SODECOTON</span>
+          <span className="text-[7px] italic text-gray-500">L'or blanc du Grand Nord</span>
         </div>
       );
 
-    case 'vt':
+    case 'tradex':
+      return (
+        <div className={`${baseClasses} flex-col`}>
+          <span className="text-[17px] font-black tracking-wider text-red-700">TRADEX</span>
+          <span className="text-[7px] font-semibold tracking-[0.15em] text-gray-500">PÉTROLE & ÉNERGIE</span>
+        </div>
+      );
+
+    case 'sabc':
+      return (
+        <div className={`${baseClasses} flex-col`}>
+          <span className="text-[15px] font-black tracking-tight text-yellow-700">SABC</span>
+          <span className="text-[7px] font-bold uppercase tracking-[0.1em] text-gray-500">BRASSERIES DU CAMEROUN</span>
+        </div>
+      );
+
+    case 'mehanda':
       return (
         <div className={`${baseClasses} gap-1`}>
-          <span className="text-[15px] font-black text-gray-700">•</span>
-          <span className="text-[20px] font-black tracking-tight text-gray-700">V&T</span>
+          <span className="text-[14px] font-bold text-emerald-700">Mehanda Green Oil</span>
         </div>
       );
 
-    case 'nantes':
-      return (
-        <div className={`${baseClasses} gap-2`}>
-          <span className="text-[16px] text-gray-600">✦</span>
-          <div className="flex flex-col items-start leading-none">
-            <span className="text-[16px] font-black text-gray-700">Nantes</span>
-            <span className="text-[9px] font-semibold tracking-[0.15em] text-gray-600">MÉTROPOLE</span>
-          </div>
-        </div>
-      );
-
-    case 'credit-mutuel':
+    case 'camtel':
       return (
         <div className={`${baseClasses} flex-col`}>
-          <span className="mb-1 text-[12px] text-gray-700">◬</span>
-          <span className="text-[14px] font-black tracking-tight text-gray-700">Crédit Mutuel</span>
+          <span className="text-[16px] font-black text-blue-800 tracking-wider">CAMTEL</span>
+          <span className="text-[7px] font-semibold tracking-[0.15em] text-gray-500">TÉLÉCOM CAMEROUN</span>
         </div>
       );
 
-    case 'le-lorec':
+    case 'ksa':
       return (
         <div className={`${baseClasses} flex-col`}>
-          <span className="text-[13px] font-black tracking-[0.12em] text-gray-700">LE LOREC</span>
-          <span className="text-[8px] font-semibold tracking-[0.2em] text-gray-500">GROUPE</span>
-          <span className="text-[6px] uppercase tracking-[0.18em] text-gray-500 mt-1">
-            L&apos;UNION POUR ENTREPRENDRE
-          </span>
-        </div>
-      );
-
-    case 'pautric':
-      return (
-        <div className={`${baseClasses} gap-2`}>
-          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-gray-500 text-[9px] font-bold text-gray-600">
-            P
-          </span>
-          <div className="flex flex-col items-start leading-none">
-            <span className="text-[18px] font-black text-gray-700">Pautric</span>
-          </div>
-        </div>
-      );
-
-    case 'fruidis':
-      return (
-        <div className={`${baseClasses}`}>
-          <span className="text-[16px] font-black italic uppercase tracking-[0.14em] text-gray-700 skew-x-[-12deg] inline-block">
-            FRUIDIS
-          </span>
-        </div>
-      );
-
-    case 'sportingsols':
-      return (
-        <div className={`${baseClasses} gap-2`}>
-          <div className="flex h-5 items-end gap-[2px]">
-            <span className="block h-5 w-[3px] bg-gray-600" />
-            <span className="block h-4 w-[3px] bg-gray-600" />
-            <span className="block h-3 w-[3px] bg-gray-600" />
-          </div>
-          <span className="text-[13px] font-black tracking-tight text-gray-700">SPORTINGSOLS</span>
+          <span className="text-[16px] font-black text-gray-800 tracking-widest">KSA</span>
+          <span className="text-[7px] uppercase tracking-[0.15em] text-gray-500">KADJI SPORTS ACADEMY</span>
         </div>
       );
 

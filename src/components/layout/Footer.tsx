@@ -35,7 +35,7 @@ export default function Footer() {
       { label: 'Résultats', href: '/calendrier' },
       { label: 'Classement', href: '/classement' },
       { label: 'Statistiques', href: '/classement' },
-      { label: 'MTN Elite One', href: '/calendrier' },
+      { label: 'Ligue Régionale Adamaoua', href: '/calendrier' },
     ],
     media: [
       { label: 'Actualités', href: '/actualites' },
@@ -60,7 +60,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 gap-12 pb-16 border-b border-white/15 lg:grid-cols-12">
           <div className="lg:col-span-4">
             <div className="flex items-center gap-5 sm:items-center">
-              <div className="relative h-30 w-30 shrink-0 rounded-full p-3 ring-4 ring-white/10">
+              <div className="relative h-300 w-300 shrink-0 rounded-full p-3 ">
                 <Image src="/logo.png" alt="Logo du Ngaoundéré FC" fill className="object-contain p-2" />
               </div>
 

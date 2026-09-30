@@ -8,14 +8,14 @@ import { ArrowRight, Clock, Shield } from 'lucide-react';
 const NEXT_MATCH = {
   date: '2026-10-10T14:00:00',
   dateLabel: '10 OCTOBRE 2026 — 14:00',
-  competition: 'MTN ELITE ONE',
-  matchday: 'JOURNÉE 8',
+  competition: 'LIGUE RÉGIONALE DE L\'ADAMAOUA',
+  matchday: 'JOURNÉE 14',
   home: {
     name: 'Ngaoundéré FC',
     logo: '/logo.png',
   },
   away: {
-    name: 'Canon Yaoundé',
+    name: 'Ngaoundéré University FC',
     logo: '',
   },
   watchHref: '/calendrier',

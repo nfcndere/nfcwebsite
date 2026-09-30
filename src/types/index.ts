@@ -1,5 +1,11 @@
+// ===================================
+// Types de position
+// ===================================
 export type PositionType = 'GARDIEN' | 'DEFENSEUR' | 'MILIEU' | 'ATTAQUANT';
 
+// ===================================
+// Joueur
+// ===================================
 export interface Player {
   id: string;
   number: number;
@@ -21,6 +27,21 @@ export interface Player {
   joinedYear: number;
 }
 
+// ===================================
+// Membre du staff technique
+// ===================================
+export interface StaffMember {
+  id: string;
+  initials: string;
+  fullName: string;
+  role: string;
+  detail: string;
+  bgColor: 'green' | 'dark' | 'gray';
+}
+
+// ===================================
+// Match
+// ===================================
 export interface MatchItem {
   id: string;
   homeTeam: string;
@@ -37,6 +58,9 @@ export interface MatchItem {
   summary?: string;
 }
 
+// ===================================
+// Classement
+// ===================================
 export interface StandingItem {
   position: number;
   teamName: string;
@@ -52,6 +76,9 @@ export interface StandingItem {
   form?: string;
 }
 
+// ===================================
+// Article / Actualité
+// ===================================
 export interface NewsItem {
   id: string;
   title: string;
@@ -59,11 +86,15 @@ export interface NewsItem {
   summary: string;
   content: string;
   coverImage: string;
+  videoUrl?: string; // URL vidéo (YouTube embed, etc.)
   category: string;
   createdAt: string;
   author: string;
 }
 
+// ===================================
+// Média galerie
+// ===================================
 export interface MediaItem {
   id: string;
   title: string;
@@ -71,8 +102,14 @@ export interface MediaItem {
   type: 'IMAGE' | 'VIDEO';
   album: string;
   createdAt: string;
+  // Joueur associé optionnel (pour la page détail joueur)
+  playerId?: string;
+  playerName?: string;
 }
 
+// ===================================
+// Formulaire académie
+// ===================================
 export interface AcademyFormInput {
   childFullName: string;
   birthDate: string;
@@ -82,5 +119,33 @@ export interface AcademyFormInput {
   parentEmail: string;
   parentPhone: string;
   address: string;
+  description?: string; // Besoins / description de la candidature
   notes?: string;
+}
+
+// ===================================
+// Trophée / Palmarès
+// ===================================
+export interface TropheeItem {
+  id: string;
+  title: string;
+  competition: string;
+  year: number;
+  description: string;
+  imageUrl?: string;
+  type: 'TITRE' | 'COUPE' | 'DISTINCTION';
+}
+
+// ===================================
+// Légende du club
+// ===================================
+export interface LegendeItem {
+  id: string;
+  fullName: string;
+  period: string; // ex: "2010-2018"
+  position: string;
+  imageUrl: string;
+  story: string; // Courte histoire / palmarès personnel
+  caps?: number; // Nombre de matchs
+  goals?: number;
 }

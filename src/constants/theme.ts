@@ -30,12 +30,12 @@ export const NFC_THEME = {
   club: {
     fullName: 'Ngaoundéré Football Club',
     shortName: 'NFC',
-    nickname: 'Les Galactiques de l\'Adamaoua',
+    nickname: 'L\'Étoile de l\'Adamaoua',
     founded: 2008,
     stadium: 'Stade Municipal de Ngaoundéré',
     capacity: '10 000 Places',
     city: 'Ngaoundéré, Région de l\'Adamaoua, Cameroun',
-    league: 'MTN Elite One',
+    league: 'Ligue Régionale de l\'Adamaoua',
   },
   navLinks: [
     { href: '/', label: 'ACCUEIL' },
