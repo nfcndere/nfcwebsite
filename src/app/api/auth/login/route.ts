@@ -38,17 +38,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const jwtSecret = process.env.JWT_SECRET || 'nfc-secret-key-2026';
+    const jwtSecret = process.env.JWT_SECRET || 'nfc-jwt-secret-2026-key';
+    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'nfc-jwt-refresh-secret-2026-key';
+
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, name: user.name },
       jwtSecret,
       { expiresIn: '30d' }
     );
 
+    const refreshToken = jwt.sign(
+      { id: user.id, type: 'refresh' },
+      jwtRefreshSecret,
+      { expiresIn: '90d' }
+    );
+
     return NextResponse.json({
       success: true,
       message: 'Connexion réussie',
       token,
+      refreshToken,
       user: {
         id: user.id,
         name: user.name,
