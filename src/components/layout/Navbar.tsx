@@ -198,7 +198,7 @@ export const Navbar = () => {
           NAVBAR
       ====================================================== */}
 
-      <div className="max-w-7xl mx-auto px-8 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
 
         <div className="flex items-center h-[100px] gap-8 font-display">
 
@@ -434,129 +434,126 @@ export const Navbar = () => {
       </div>
 
       {/* =====================================================
-          MOBILE DRAWER
+          MOBILE SIDEBAR (SLIDE-OVER DRAWER)
       ====================================================== */}
-
       {isOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop avec flou */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity animate-fade-in"
+            onClick={() => setIsOpen(false)}
+          />
 
-        <div className="lg:hidden bg-white border-t border-gray-100 shadow-xl">
-
-          <div className="max-w-7xl mx-auto px-4 py-4 space-y-1">
-
-            {NAV_ITEMS.map((item) => {
-
-              const active = isActive(item.href);
-
-              // ───────────────────────────────────────────────
-              // Lien simple
-              // ───────────────────────────────────────────────
-
-              if (!item.children) {
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center px-4 py-3 rounded-xl text-[13px] font-display font-bold tracking-wider transition-all duration-150 whitespace-nowrap ${
-                      active
-                        ? 'bg-[color:var(--nfc-green)] text-white'
-                        : 'text-gray-800 hover:bg-gray-50 hover:text-[color:var(--nfc-green)]'
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              }
-
-              // ───────────────────────────────────────────────
-              // Dropdown mobile
-              // ───────────────────────────────────────────────
-
-              const open = openDropdown === item.label;
-
-              return (
-
-                <div key={item.label}>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      toggleDropdown(item.label)
-                    }
-                    aria-expanded={open}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-[13px] font-display font-bold tracking-wider transition-all duration-150 ${
-                      active
-                        ? 'bg-[color:var(--nfc-green)] text-white'
-                        : 'text-gray-800 hover:bg-gray-50 hover:text-[color:var(--nfc-green)]'
-                    }`}
-                  >
-
-                    <span className="whitespace-nowrap">
-                      {item.label}
-                    </span>
-
-                    <ChevronDown
-                      className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                        open
-                          ? 'rotate-180'
-                          : ''
-                      }`}
-                    />
-
-                  </button>
-
-                  {open && (
-
-                    <div className="pl-4 mt-1 space-y-1 border-l-2 border-[color:var(--nfc-green)]/20 ml-4">
-
-                      {item.children.map((child) => (
-
-                        <Link
-                          key={child.href}
-                          href={child.href}
-                          className="block px-4 py-2 rounded-lg text-[12px] font-display text-gray-600 hover:bg-gray-50 hover:text-[color:var(--nfc-green)] whitespace-nowrap"
-                        >
-                          {child.label}
-                        </Link>
-
-                      ))}
-
-                    </div>
-
-                  )}
-
+          {/* Panneau latéral Sidebar */}
+          <aside className="fixed inset-y-0 right-0 z-50 w-80 max-w-[85vw] bg-white shadow-2xl flex flex-col justify-between p-5 animate-slide-in-right overflow-y-auto">
+            <div>
+              {/* En-tête Sidebar */}
+              <div className="flex items-center justify-between pb-4 mb-4 border-b border-gray-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="relative w-9 h-9 rounded-full overflow-hidden ring-2 ring-[#008751]/20">
+                    <Image src="/logo.png" alt="NFC Logo" fill className="object-contain" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-sm font-extrabold text-gray-900 leading-none">NGAOUNDÉRÉ FC</h3>
+                    <span className="text-[9px] font-display font-bold text-[#008751] tracking-wider uppercase">L'Étoile de l'Adamaoua</span>
+                  </div>
                 </div>
-              );
-            })}
 
-            {/* =================================================
-                MOBILE CTA
-            ================================================= */}
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-2 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                  aria-label="Fermer le menu"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-            <div className="pt-4 mt-2 border-t border-gray-100 flex flex-col gap-2.5">
+              {/* Navigation Items */}
+              <nav className="space-y-1.5 font-display text-xs font-bold">
+                {NAV_ITEMS.map((item) => {
+                  const active = isActive(item.href);
 
+                  if (!item.children) {
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setIsOpen(false)}
+                        className={`flex items-center justify-between px-3.5 py-3 rounded-xl transition-all duration-150 ${
+                          active
+                            ? 'bg-[#008751] text-white shadow-sm'
+                            : 'text-gray-800 hover:bg-gray-50 hover:text-[#008751]'
+                        }`}
+                      >
+                        <span>{item.label}</span>
+                        <ChevronRight className={`w-4 h-4 opacity-50 ${active ? 'text-white' : ''}`} />
+                      </Link>
+                    );
+                  }
+
+                  const open = openDropdown === item.label;
+
+                  return (
+                    <div key={item.label} className="space-y-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleDropdown(item.label)}
+                        className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl transition-all duration-150 ${
+                          active
+                            ? 'bg-[#008751] text-white shadow-sm'
+                            : 'text-gray-800 hover:bg-gray-50 hover:text-[#008751]'
+                        }`}
+                      >
+                        <span>{item.label}</span>
+                        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {open && (
+                        <div className="pl-3 py-1 space-y-1 border-l-2 border-[#008751]/20 ml-3">
+                          {item.children.map((child) => (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              onClick={() => setIsOpen(false)}
+                              className="block px-3 py-2 rounded-lg text-xs text-gray-600 hover:bg-gray-50 hover:text-[#008751] transition-colors"
+                            >
+                              {child.label}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {/* Pied de Sidebar avec CTAs */}
+            <div className="pt-4 border-t border-gray-100 space-y-2.5 mt-6">
               <Link
                 href="/calendrier"
-                className="btn-yellow w-full justify-center py-3 text-[12px] whitespace-nowrap"
+                onClick={() => setIsOpen(false)}
+                className="btn-yellow w-full justify-center py-2.5 text-xs whitespace-nowrap shadow-sm"
               >
                 BILLETTERIE
               </Link>
 
               <Link
                 href="/membre"
-                className="btn-green w-full justify-center py-3 text-[12px] whitespace-nowrap"
+                onClick={() => setIsOpen(false)}
+                className="btn-green w-full justify-center py-2.5 text-xs whitespace-nowrap shadow-sm flex items-center gap-2"
               >
-                ESPACE SUPPORTER
+                <User className="w-4 h-4" />
+                <span>ESPACE SUPPORTER</span>
               </Link>
 
+              <p className="text-[10px] text-center text-gray-400 font-mono pt-2">
+                © 2026 Ngaoundéré FC • Adamaoua
+              </p>
             </div>
-
-          </div>
-
+          </aside>
         </div>
-
       )}
-
     </header>
   );
 };
