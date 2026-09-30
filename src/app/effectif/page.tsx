@@ -213,8 +213,8 @@ export default function EffectifPage() {
         </section>
 
         <section className="space-y-3 sm:space-y-5">
-          <SectionTag label="Encadrement Sportif & Staff Technique" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          <SectionTag label="Staff Technique — Équipe Première (SAISON 2026-2027)" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {STAFF_DATA.map((member) => (
               <StaffCard key={member.id} member={member} />
             ))}
