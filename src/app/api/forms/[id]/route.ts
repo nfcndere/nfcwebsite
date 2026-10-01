@@ -39,3 +39,20 @@ export async function GET(
     return NextResponse.json({ error: 'Erreur lors de la récupération' }, { status: 500 });
   }
 }
+
+// ===================================
+// DELETE /api/forms/[id] — Supprimer une candidature / formulaire
+// ===================================
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await prisma.formSubmission.delete({
+      where: { id: params.id },
+    });
+    return NextResponse.json({ success: true, message: 'Formulaire supprimé avec succès' });
+  } catch (error) {
+    return NextResponse.json({ error: 'Erreur lors de la suppression' }, { status: 500 });
+  }
+}

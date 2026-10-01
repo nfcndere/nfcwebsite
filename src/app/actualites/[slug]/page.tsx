@@ -1,21 +1,42 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
-import { NEWS_DATA } from '@/lib/mock-data';
+import prisma from '@/lib/prisma';
 import { NewsArticle } from '@/components/news/NewsArticle';
 
 interface PageProps {
   params: { slug: string };
 }
 
-export async function generateStaticParams() {
-  return NEWS_DATA.map((article) => ({
-    slug: article.slug,
-  }));
-}
+export default async function ArticlePage({ params }: PageProps) {
+  let article: any = null;
 
-export default function ArticlePage({ params }: PageProps) {
-  const article = NEWS_DATA.find((a) => a.slug === params.slug) || NEWS_DATA[0];
-  if (!article) return notFound();
+  try {
+    const found = await prisma.article.findFirst({
+      where: { OR: [{ slug: params.slug }, { id: params.slug }] },
+      include: { cover: true, author: { select: { name: true } } },
+    });
+
+    if (found) {
+      article = {
+        id: found.id,
+        slug: found.slug,
+        title: found.title,
+        summary: found.summary || '',
+        content: found.content,
+        category: found.category || 'ACTUALITE',
+        coverImage: found.cover?.url || '/actu baneer.jpg',
+        author: found.author?.name || 'Rédaction NFC',
+        videoUrl: found.videoUrl || null,
+        createdAt: found.createdAt ? new Date(found.createdAt).toISOString() : new Date().toISOString(),
+      };
+    }
+  } catch (err) {
+    console.warn('Erreur lors de la récupération de l’article:', err);
+  }
+
+  if (!article) {
+    return notFound();
+  }
 
   return (
     <div className="py-8 sm:py-12">

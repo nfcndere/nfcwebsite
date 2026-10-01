@@ -10,9 +10,11 @@ export async function GET(request: NextRequest) {
       orderBy: { number: 'asc' },
     });
     return NextResponse.json(players);
-  } catch (error) {
-    const { PLAYERS_DATA } = await import('@/lib/mock-data');
-    return NextResponse.json(PLAYERS_DATA);
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: 'Erreur lors de la récupération des joueurs' },
+      { status: 500 }
+    );
   }
 }
 

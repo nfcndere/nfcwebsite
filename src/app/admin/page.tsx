@@ -8,9 +8,9 @@ import { NEWS_DATA, PLAYERS_DATA, MATCHES_DATA } from '@/lib/mock-data';
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'NEWS' | 'PLAYERS' | 'ACADEMY' | 'MATCHES'>('NEWS');
-  const [news, setNews] = useState<any[]>(NEWS_DATA);
-  const [players, setPlayers] = useState<any[]>(PLAYERS_DATA);
-  const [matches, setMatches] = useState<any[]>(MATCHES_DATA);
+  const [news, setNews] = useState<any[]>([]);
+  const [players, setPlayers] = useState<any[]>([]);
+  const [matches, setMatches] = useState<any[]>([]);
   const [academySubmissions, setAcademySubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -24,12 +24,12 @@ export default function AdminPage() {
         fetch('/api/academie').then(r => r.ok ? r.json() : []),
       ]);
 
-      if (Array.isArray(resNews) && resNews.length > 0) setNews(resNews);
-      if (Array.isArray(resPlayers) && resPlayers.length > 0) setPlayers(resPlayers);
-      if (Array.isArray(resMatches) && resMatches.length > 0) setMatches(resMatches);
+      if (Array.isArray(resNews)) setNews(resNews);
+      if (Array.isArray(resPlayers)) setPlayers(resPlayers);
+      if (Array.isArray(resMatches)) setMatches(resMatches);
       if (Array.isArray(resAcademy)) setAcademySubmissions(resAcademy);
     } catch (err) {
-      console.warn('Erreur chargement données admin, utilisation du fallback');
+      console.warn('Erreur lors du chargement des données API');
     } finally {
       setLoading(false);
     }

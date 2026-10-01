@@ -25,10 +25,11 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(medias);
-  } catch (error) {
-    // Fallback mock
-    const { GALLERY_DATA } = await import('@/lib/mock-data');
-    return NextResponse.json(GALLERY_DATA);
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: 'Erreur lors de la récupération de la galerie' },
+      { status: 500 }
+    );
   }
 }
 
