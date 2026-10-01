@@ -17,10 +17,11 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(matches);
-  } catch (error) {
-    // En cas d'erreur DB, renvoyer les données mock
-    const { MATCHES_DATA } = await import('@/lib/mock-data');
-    return NextResponse.json(MATCHES_DATA);
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: 'Erreur lors de la récupération des matchs' },
+      { status: 500 }
+    );
   }
 }
 

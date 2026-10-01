@@ -19,7 +19,7 @@ const NFC_TV_VIDEO = {
 export default function ActualitesPage() {
   const [filterCategory, setFilterCategory] = useState<string>('TOUS');
   const [searchQuery, setSearchQuery] = useState('');
-  const [articles, setArticles] = useState<any[]>(NEWS_DATA);
+  const [articles, setArticles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function ActualitesPage() {
         const res = await fetch('/api/articles');
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
+          if (Array.isArray(data)) {
             const formatted = data.map((item: any) => ({
               id: item.id,
               slug: item.slug || `article-${item.id}`,
@@ -45,7 +45,7 @@ export default function ActualitesPage() {
           }
         }
       } catch (error) {
-        console.warn('Utilisation du fallback local pour les articles');
+        console.warn('Erreur lors de la récupération des articles');
       } finally {
         setLoading(false);
       }
@@ -60,7 +60,7 @@ export default function ActualitesPage() {
     { key: 'ACTUALITE', label: 'CLUB & DÉPÊCHES' },
   ];
 
-  const featuredArticle = articles[0] || NEWS_DATA[0];
+  const featuredArticle = articles[0] || null;
 
   const filteredNews = articles.filter((news) => {
     const matchesCategory = filterCategory === 'TOUS' || news.category === filterCategory;

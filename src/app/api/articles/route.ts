@@ -23,10 +23,11 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(articles);
-  } catch (error) {
-    // Fallback sur le mock en cas d'erreur DB
-    const { NEWS_DATA } = await import('@/lib/mock-data');
-    return NextResponse.json(NEWS_DATA);
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: 'Erreur lors de la récupération des articles' },
+      { status: 500 }
+    );
   }
 }
 
