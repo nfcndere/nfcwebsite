@@ -59,9 +59,9 @@ export default function Footer() {
         {/* Zone 1: Top brand + newsletter + social */}
         <div className="grid grid-cols-1 gap-12 pb-16 border-b border-white/15 lg:grid-cols-12">
           <div className="lg:col-span-4">
-            <div className="flex items-center gap-5 sm:items-center">
-              <div className="relative h-300 w-300 shrink-0 rounded-full p-3 ">
-                <Image src="/logo.png" alt="Logo du Ngaoundéré FC" fill className="object-contain p-2" />
+            <div className="flex items-center gap-4 sm:items-center">
+              <div className="relative w-20 h-20 shrink-0">
+                <Image src="/logo.png" alt="Logo du Ngaoundéré FC" fill className="object-contain" />
               </div>
 
               <div>

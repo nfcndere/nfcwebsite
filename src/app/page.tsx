@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Shield, Play, Trophy, Mail, Send, CheckCircle2, Star, X, MessageCircle, Handshake, Building2 } from 'lucide-react';
 import NewsGrid from '@/components/sections/NewsGrid';
 import Partners from '@/components/sections/Partners';
@@ -27,6 +28,39 @@ export default function HomePage() {
   const [newsletterSent, setNewsletterSent] = useState(false);
   const [newsletterLoading, setNewsletterLoading] = useState(false);
   const [isPartenaireModalOpen, setIsPartenaireModalOpen] = useState(false);
+
+  // Classement API state
+  const [nfcStanding, setNfcStanding] = useState({
+    position: 1,
+    rank: 1,
+    points: 31,
+    played: 13,
+    won: 10,
+    drawn: 1,
+    lost: 2,
+    goalsFor: 34,
+    goalsAgainst: 12,
+    goalDifference: 22,
+    form: 'V-V-N-V-V',
+    teamName: 'Ngaoundéré FC',
+  });
+
+  useEffect(() => {
+    async function loadStandings() {
+      try {
+        const res = await fetch('/api/standings');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.nfc) {
+            setNfcStanding(json.nfc);
+          }
+        }
+      } catch (err) {
+        console.warn('API standings fallback home page');
+      }
+    }
+    loadStandings();
+  }, []);
 
   // Formulaire partenaire
   const [partenaireForm, setPartenaireForm] = useState({
@@ -104,7 +138,7 @@ export default function HomePage() {
 
             {/* Subtitle */}
             <p className="text-gray-300 text-sm sm:text-base leading-relaxed font-normal max-w-2xl">
-              Une victoire d'anthologie scellée dans les arrêt du jeu au terme d'un derby captivant au Stade Municipal. Retrouvez les moments forts et les réactions d'après-match des joueurs de l'Adamaoua.
+              Un lancement de saison en feu pour conquerir le championat regional cette annee et viser l elite two camerounaise. Le Ngaoundéré Football Club, l'Étoile de l'Adamaoua, est prêt à briller sur le terrain et à captiver ses supporters avec des performances inoubliables.
             </p>
 
             {/* Buttons */}
@@ -138,9 +172,9 @@ export default function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {(() => {
-            const nfcStanding = STANDINGS_DATA.find((team) => team.teamName.includes('Ngaoundéré')) ?? STANDINGS_DATA[0];
-            const topTeam = STANDINGS_DATA[0];
-            const nfcForm = nfcStanding.form ?? 'V-V-N-V-V';
+            const nfcRank = nfcStanding.rank || nfcStanding.position || 1;
+            const nfcForm = nfcStanding.form || 'V-V-N-V-V';
+            const rows = [1, 2, 3, 4, 5];
 
             return (
               <>
@@ -150,13 +184,13 @@ export default function HomePage() {
                     <span className="text-xs font-bold text-gray-500 uppercase font-display block">COMPÉTITION OFFICIELLE</span>
                     <h3 className="font-display text-2xl font-bold text-gray-900 uppercase mt-1">CLASSEMENT & DYNAMIQUE</h3>
                     <p className="text-xs text-gray-600 mt-2 leading-relaxed">
-                      Saison 2025-2026 : Le NFC se classe au {nfcStanding.position}ème rang provisoire du championnat avec la {topTeam.goalsFor > 0 ? '2ème meilleure attaque' : 'meilleure attaque'} du pays.
+                      Saison 2025-2026 : Le NFC se classe au {nfcRank}er rang provisoire du championnat régional avec une dynamique de {nfcStanding.won} victoires en {nfcStanding.played} rencontres.
                     </p>
                   </div>
 
                   <div className="my-6 p-4 bg-[color:var(--nfc-bg)] rounded-xl border border-gray-200 flex items-center gap-6">
-                    <div className="w-16 h-16 bg-[color:var(--nfc-yellow)] text-[color:var(--nfc-dark)] font-display font-extrabold text-3xl rounded-xl flex items-center justify-center shadow-sm">
-                      {nfcStanding.position}
+                    <div className="w-16 h-16 bg-[#008751] text-white font-display font-extrabold text-3xl rounded-xl flex items-center justify-center shadow-sm">
+                      {nfcRank}
                     </div>
                     <div>
                       <span className="font-display font-bold text-xl text-gray-900 block">NGAOUNDÉRÉ FC</span>
@@ -175,11 +209,11 @@ export default function HomePage() {
                     <span className="font-display text-sm font-bold text-gray-900 uppercase">EXTRAIT DU CLASSEMENT</span>
                     <div className="flex items-center gap-1.5 text-[11px] font-bold">
                       <span className="text-gray-500 uppercase">Forme :</span>
-                      {nfcForm.split('-').map((state, index) => (
+                      {nfcForm.split('-').map((state: string, index: number) => (
                         <span
-                          key={`${nfcStanding.teamName}-${index}`}
+                          key={`nfc-form-${index}`}
                           className={`flex h-4 w-4 items-center justify-center rounded-full text-[9px] text-white ${
-                            state === 'V' ? 'bg-emerald-600' : state === 'N' ? 'bg-amber-500' : 'bg-rose-600'
+                            state === 'V' ? 'bg-[#008751]' : state === 'N' ? 'bg-amber-500' : 'bg-rose-600'
                           }`}
                         >
                           {state}
@@ -199,18 +233,47 @@ export default function HomePage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {STANDINGS_DATA.slice(0, 5).map((team) => {
-                        const isNFC = team.teamName.includes('Ngaoundéré');
+                      {rows.map((pos) => {
+                        const isNFC = pos === nfcRank;
+
+                        if (isNFC) {
+                          return (
+                            <tr key={`home-rank-${pos}`} className="bg-[#008751]/10 font-bold border-l-4 border-[#008751]">
+                              <td className="py-3 px-2 font-display font-bold text-sm text-[#008751]">{pos}</td>
+                              <td className="py-3 px-3 flex items-center gap-2">
+                                <div className="w-5 h-5 relative shrink-0">
+                                  <Image
+                                    src="/logo.png"
+                                    alt="Ngaoundéré FC Logo"
+                                    width={20}
+                                    height={20}
+                                    className="w-full h-full object-contain"
+                                  />
+                                </div>
+                                <span className="text-[#008751] font-bold">{nfcStanding.teamName}</span>
+                              </td>
+                              <td className="py-3 px-3 text-center font-mono">{nfcStanding.played}</td>
+                              <td className="py-3 px-3 text-center font-mono">+{nfcStanding.goalDifference}</td>
+                              <td className="py-3 px-3 text-center font-display font-bold text-sm text-[#008751]">{nfcStanding.points}</td>
+                            </tr>
+                          );
+                        }
+
                         return (
-                          <tr key={team.teamName} className={isNFC ? 'bg-[color:var(--nfc-yellow)]/20 font-bold' : ''}>
-                            <td className="py-3 px-2 font-display font-bold text-sm">{team.position}</td>
-                            <td className="py-3 px-3 flex items-center gap-2">
-                              {isNFC && <Shield className="w-4 h-4 text-[color:var(--nfc-green)]" />}
-                              <span className={isNFC ? 'text-[color:var(--nfc-green)] font-bold' : 'text-gray-900'}>{team.teamName}</span>
+                          <tr key={`home-rank-${pos}`} className="bg-gray-50/40">
+                            <td className="py-3 px-2 font-display text-sm text-gray-400">{pos}</td>
+                            <td className="py-3 px-3">
+                              <div className="h-3.5 w-32 bg-gray-200 rounded animate-pulse" />
                             </td>
-                            <td className="py-3 px-3 text-center font-mono">{team.played}</td>
-                            <td className="py-3 px-3 text-center font-mono">+{team.goalDifference}</td>
-                            <td className="py-3 px-3 text-center font-display font-bold text-sm text-[color:var(--nfc-dark)]">{team.points}</td>
+                            <td className="py-3 px-3 text-center">
+                              <div className="h-3.5 w-6 mx-auto bg-gray-200 rounded animate-pulse" />
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <div className="h-3.5 w-7 mx-auto bg-gray-200 rounded animate-pulse" />
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <div className="h-4 w-6 mx-auto bg-gray-200 rounded animate-pulse" />
+                            </td>
                           </tr>
                         );
                       })}
@@ -303,107 +366,107 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 7. NEWSLETTER & PARTENAIRE */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
-          <div className="bg-[color:var(--nfc-green)] text-[color:var(--nfc-dark)] rounded-full py-3 px-6 text-center">
-            <span className="font-display text-sm font-extrabold uppercase tracking-wider">
-              NEWSLETTER
-            </span>
-          </div>
-          <div className="bg-[color:var(--nfc-green)] text-[color:var(--nfc-dark)] rounded-full py-3 px-6 text-center">
-            <span className="font-display text-sm font-extrabold uppercase tracking-wider">
-              INFORMATION PARTENAIRE
-            </span>
-          </div>
-        </div>
+      {/* 7. NEWSLETTER & PARTENAIRES */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <SectionTag label="Communauté & Partenariats" className="mb-6" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-[color:var(--nfc-green)] p-8 sm:p-10">
-            <div className="flex items-center gap-8">
-              <div className="hidden sm:flex shrink-0 w-32 h-32 items-center justify-center relative">
-                <div className="absolute inset-0 bg-[color:var(--nfc-dark)]/90 transform rotate-6 rounded-lg" />
-                <div className="absolute inset-0 bg-[color:var(--nfc-dark)] rounded-lg flex items-center justify-center">
-                  <Mail className="w-14 h-14 text-white" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-stretch">
+          
+          {/* Card 1: Newsletter */}
+          <div className="rounded-2xl bg-gradient-to-br from-[#0c130e] via-[#152e1f] to-[#008751] p-6 sm:p-8 text-white relative overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between border border-emerald-900/40 min-h-[340px]">
+            {/* Background Decorative Glow */}
+            <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#008751]/20 rounded-full blur-3xl pointer-events-none" />
+
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#008751]/30 text-[color:var(--nfc-yellow)] text-[10px] font-bold uppercase tracking-wider border border-[#008751]/40">
+                  <Mail className="w-3.5 h-3.5" /> Newsletter Officielle
+                </span>
+                <span className="text-[10px] text-emerald-200/70 uppercase font-semibold">Gracieux & Hebdomadaire</span>
+              </div>
+
+              <h3 className="font-display text-xl sm:text-2xl font-extrabold uppercase leading-tight text-white mt-2">
+                RESTEZ AU CŒUR DE L'ACTION
+              </h3>
+              <p className="text-xs text-gray-200 mt-2 leading-relaxed max-w-lg font-normal">
+                Recevez en avant-première les résumés des matchs, les dates des détections de l'académie et les actualités exclusives du Ngaoundéré FC.
+              </p>
+            </div>
+
+            <div className="mt-6">
+              {newsletterSent ? (
+                <div className="inline-flex items-center gap-2 bg-[#0c130e]/90 text-[color:var(--nfc-yellow)] border border-emerald-500/30 px-4 py-3 text-xs font-bold rounded-xl w-full">
+                  <CheckCircle2 className="w-4 h-4 text-[color:var(--nfc-yellow)] shrink-0" />
+                  <span>Votre inscription à la newsletter a été enregistrée avec succès !</span>
                 </div>
-              </div>
-
-              <div className="flex-grow">
-                <h3 className="font-display text-3xl font-extrabold text-[color:var(--nfc-dark)] leading-tight">
-                  Inscrivez-vous à la Newsletter
-                </h3>
-                <p className="text-xs text-[color:var(--nfc-dark)] mt-2 font-medium">
-                  Ne ratez plus aucune actualité des Jaune et Vert.
-                </p>
-
-                {newsletterSent ? (
-                  <div className="mt-4 inline-flex items-center gap-2 bg-[#0c130e] text-[color:var(--nfc-green)] px-4 py-2 text-xs font-bold rounded-lg">
-                    <CheckCircle2 className="w-4 h-4 text-[color:var(--nfc-yellow)]" />
-                    Merci ! Abonnement enregistré.
-                  </div>
-                ) : (
-                  <form onSubmit={handleNewsletter} className="mt-4 flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Votre email..."
-                      className="flex-grow px-4 py-2.5 rounded-lg text-gray-900 text-xs font-medium border-0 outline-none bg-white"
-                    />
-                    <button
-                      type="submit"
-                      disabled={newsletterLoading}
-                      className="bg-[color:var(--nfc-dark)] hover:bg-[#102016] text-white font-display font-extrabold text-xs px-6 py-2.5 uppercase tracking-wider transition-colors disabled:opacity-60"
-                    >
-                      {newsletterLoading ? 'ENVOI...' : "M'INSCRIRE"}
-                    </button>
-                  </form>
-                )}
-              </div>
+              ) : (
+                <form onSubmit={handleNewsletter} className="flex flex-col sm:flex-row gap-2.5">
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Entrez votre adresse email..."
+                    className="flex-grow px-4 py-3 rounded-xl text-gray-900 text-xs font-medium border-0 outline-none bg-white/95 focus:bg-white focus:ring-2 focus:ring-[color:var(--nfc-yellow)] transition-all shadow-inner"
+                  />
+                  <button
+                    type="submit"
+                    disabled={newsletterLoading}
+                    className="bg-[color:var(--nfc-yellow)] hover:bg-[#ebd234] text-[#0c130e] font-display font-extrabold text-xs px-6 py-3 rounded-xl uppercase tracking-wider transition-colors disabled:opacity-60 shrink-0 flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <span>{newsletterLoading ? 'ENVOI...' : "M'INSCRIRE"}</span>
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </form>
+              )}
             </div>
           </div>
 
-          <div className="bg-white p-8 sm:p-10 border border-[#e5e7eb]">
-            <div className="flex flex-col sm:flex-row gap-6 items-start">
-              <div className="sm:w-2/5 shrink-0">
-                <img
-                  src="https://res.cloudinary.com/u9588m3i/image/upload/v1790749936/stade3.jpg"
-                  alt="Stade"
-                  className="w-full h-full object-cover aspect-[2/3] rounded-lg"
-                />
+          {/* Card 2: Devenir Partenaire */}
+          <div className="rounded-2xl bg-white p-6 sm:p-8 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between relative overflow-hidden min-h-[340px]">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#008751]/10 text-[#008751] text-[10px] font-bold uppercase tracking-wider border border-[#008751]/20">
+                  <Handshake className="w-3.5 h-3.5" /> Partenariats & Sponsoring
+                </span>
+                <span className="text-[10px] text-gray-400 uppercase font-semibold">Saison 2025-2026</span>
               </div>
 
-              <div className="flex flex-col justify-between flex-grow gap-4">
-                <div>
-                  <span className="text-[10px] uppercase text-[color:var(--nfc-green)] font-display font-bold">
-                    STADE DE NDOUMBE OUMAR 
-                  </span>
+              <h3 className="font-display text-xl sm:text-2xl font-extrabold uppercase leading-tight text-gray-900 mt-2">
+                ASSOCIEZ VOTRE IMAGE AU NFC
+              </h3>
+              <p className="text-xs text-gray-600 mt-2 leading-relaxed">
+                Devenez partenaire officiel du Ngaoundéré FC et bénéficiez d'une visibilité stratégique maximale lors de nos matchs à domicile et événements.
+              </p>
 
-                  <div className="flex items-center gap-3 mt-1 mb-3">
-                    <span className="font-display font-extrabold text-sm text-[#0c130e]">
-                      NFC × PRESTIGE
-                    </span>
-                    <span className="bg-black text-white px-2 py-0.5 text-[10px] font-bold">
-                      sodExo
-                    </span>
-                  </div>
-
-                  <h4 className="font-display text-base sm:text-lg font-bold text-[#0c130e] uppercase leading-tight">
-                    Devenez partenaire officiel du Ngaoundéré FC et bénéficiez d'une visibilité maximale lors de nos matchs et événements.
-                  </h4>
+              {/* Bullet perks */}
+              <div className="grid grid-cols-3 gap-2 mt-5 pt-4 border-t border-gray-100 text-center">
+                <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                  <span className="text-xs font-bold text-gray-900 block">Stade</span>
+                  <span className="text-[10px] text-gray-500">Panneaux bord terrain</span>
                 </div>
-
-                <button
-                  onClick={() => setIsPartenaireModalOpen(true)}
-                  className="self-start bg-[color:var(--nfc-green)] hover:bg-[color:var(--nfc-green-dark)] text-white font-display font-extrabold text-xs px-5 py-2.5 uppercase tracking-wider transition-colors flex items-center gap-2"
-                >
-                  <Handshake className="w-4 h-4" />
-                  DEVENIR PARTENAIRE
-                </button>
+                <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                  <span className="text-xs font-bold text-gray-900 block">Digital</span>
+                  <span className="text-[10px] text-gray-500">Réseaux & Site web</span>
+                </div>
+                <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                  <span className="text-xs font-bold text-gray-900 block">Maillots</span>
+                  <span className="text-[10px] text-gray-500">Sponsoring officiel</span>
+                </div>
               </div>
             </div>
+
+            <div className="mt-6 pt-2">
+              <button
+                onClick={() => setIsPartenaireModalOpen(true)}
+                className="w-full bg-[#008751] hover:bg-[#006e42] text-white font-display font-extrabold text-xs px-6 py-3.5 rounded-xl uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center gap-2"
+              >
+                <Handshake className="w-4 h-4" />
+                <span>DEVENIR PARTENAIRE DU CLUB &rarr;</span>
+              </button>
+            </div>
           </div>
+
         </div>
       </section>
 

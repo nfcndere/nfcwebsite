@@ -3,8 +3,7 @@ import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import Partners from '@/components/sections/Partners';
-import { PartnersStrip } from '@/components/layout/PartnersStrip';
-import { SponsorsStrip } from '@/components/layout/SponsorsStrip';
+import PageTransition from '@/components/ui/PageTransition';
 
 export const metadata: Metadata = {
   title: "Ngaoundéré Football Club (NFC) — Site Officiel",
@@ -24,11 +23,12 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-        <html lang="fr" className="scroll-smooth">
-          <body className="antialiased bg-[color:var(--nfc-bg)] text-[color:var(--nfc-text)] flex flex-col min-h-screen font-body">
+    <html lang="fr" className="scroll-smooth">
+      <body className="antialiased bg-[color:var(--nfc-bg)] text-[color:var(--nfc-text)] flex flex-col min-h-screen font-body">
         <Navbar />
-        <main className="flex-grow">{children}</main>
-        {/* 4. PARTENAIRES SECTION */}
+        <main className="flex-grow">
+          <PageTransition>{children}</PageTransition>
+        </main>
         <Partners />
         <Footer />
       </body>

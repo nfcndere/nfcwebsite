@@ -9,7 +9,7 @@ const NEXT_MATCH = {
   date: '2026-10-10T14:00:00',
   dateLabel: '10 OCTOBRE 2026 — 14:00',
   competition: 'LIGUE RÉGIONALE DE L\'ADAMAOUA',
-  matchday: 'JOURNÉE 14',
+  matchday: 'JOURNÉE 1',
   home: {
     name: 'Ngaoundéré FC',
     logo: '/logo.png',

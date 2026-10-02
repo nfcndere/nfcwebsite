@@ -1,555 +1,395 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
-  Menu,
-  X,
-  User,
-  ChevronDown,
-  ChevronRight,
+  Menu, X, User, ChevronDown, ChevronRight,
+  Home, Newspaper, Trophy, Image as ImageIcon, Shield,
+  GraduationCap, Calendar, BarChart2, Ticket
 } from 'lucide-react';
 
-// ─────────────────────────────────────────────────────────────
-// Navigation
-// ─────────────────────────────────────────────────────────────
-
+// ─── Types ────────────────────────────────────────────────────────────────────
 type NavItem = {
   label: string;
   href: string;
-  children?: {
-    label: string;
-    href: string;
-  }[];
+  icon?: React.ElementType;
+  children?: { label: string; href: string; icon?: React.ElementType }[];
 };
 
+// ─── Nav Config ───────────────────────────────────────────────────────────────
 const NAV_ITEMS: NavItem[] = [
+  { label: 'ACCUEIL',    href: '/',            icon: Home },
+  { label: 'ACTUALITÉS', href: '/actualites',  icon: Newspaper },
   {
-    label: 'ACCUEIL',
-    href: '/',
-  },
-
-  {
-    label: 'ACTUALITÉS',
-    href: '/actualites',
-  },
-
-  {
-    label: 'COMPÉTITIONS',
-    href: '/competitions',
+    label: 'COMPÉTITIONS', href: '/competitions', icon: Trophy,
     children: [
-      {
-        label: 'Calendrier',
-        href: '/calendrier',
-      },
-      {
-        label: 'Équipe',
-        href: '/effectif',
-      },
+      { label: 'Calendrier & Résultats', href: '/calendrier',  icon: Calendar },
+      { label: 'Effectif',               href: '/effectif',    icon: User },
+      { label: 'Classement',             href: '/classement',  icon: BarChart2 },
     ],
   },
-
+  { label: 'GALERIE', href: '/galerie', icon: ImageIcon },
   {
-    label: 'Galerie',
-    href: '/galerie',
-  },
-
-  {
-    label: 'LE CLUB',
-    href: '/le-club',
+    label: 'LE CLUB', href: '/le-club', icon: Shield,
     children: [
-      {
-        label: 'Présentation',
-        href: '/le-club',
-      },
-      {
-        label: 'Académie',
-        href: '/academie',
-      },
+      { label: 'Présentation',  href: '/le-club',   icon: Shield },
+      { label: 'Académie',      href: '/academie',  icon: GraduationCap },
     ],
   },
 ];
 
-// ─────────────────────────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────────────────────────
-
-const LINK_BASE =
-  'inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[13px] font-display font-medium rounded-lg transition-colors whitespace-nowrap shrink-0';
-
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 const linkClass = (isActive: boolean) =>
-  `${LINK_BASE} ${
+  `inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-display font-semibold rounded-lg transition-all duration-200 whitespace-nowrap shrink-0 ${
     isActive
       ? 'text-[color:var(--nfc-green)] bg-[color:var(--nfc-green)]/8'
       : 'text-gray-700 hover:text-[color:var(--nfc-green)] hover:bg-gray-50'
   }`;
 
-const dropdownItemClass =
-  'block px-4 py-2.5 text-[13px] font-display text-gray-700 hover:bg-gray-50 hover:text-[color:var(--nfc-green)] transition-colors whitespace-nowrap';
-
-// ─────────────────────────────────────────────────────────────
-// Navbar
-// ─────────────────────────────────────────────────────────────
-
+// ─── Navbar ───────────────────────────────────────────────────────────────────
 export const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
+  const [isOpen,       setIsOpen]       = useState(false);
+  const [isScrolled,   setIsScrolled]   = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [closing,      setClosing]      = useState(false);
 
   const pathname = usePathname();
 
-  // ─────────────────────────────────────────────────────────
-  // Scroll
-  // ─────────────────────────────────────────────────────────
-
+  // Scroll shadow
   useEffect(() => {
-    const onScroll = () => {
-      setIsScrolled(window.scrollY > 8);
-    };
-
-    window.addEventListener('scroll', onScroll, {
-      passive: true,
-    });
-
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-    };
+    const onScroll = () => setIsScrolled(window.scrollY > 6);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // ─────────────────────────────────────────────────────────
-  // Fermer les menus au changement de page
-  // ─────────────────────────────────────────────────────────
-
+  // Close on route change
   useEffect(() => {
-    setIsOpen(false);
+    handleClose();
     setOpenDropdown(null);
   }, [pathname]);
 
-  // ─────────────────────────────────────────────────────────
-  // Active
-  // ─────────────────────────────────────────────────────────
+  // Lock body scroll when sidebar open
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
 
   const isActive = (href: string) => {
     if (!pathname) return false;
     return href === '/' ? pathname === '/' : pathname.startsWith(href);
   };
 
-  // ─────────────────────────────────────────────────────────
-  // Dropdown
-  // ─────────────────────────────────────────────────────────
+  // Animated close
+  const handleClose = useCallback(() => {
+    if (!isOpen) return;
+    setClosing(true);
+    setTimeout(() => {
+      setIsOpen(false);
+      setClosing(false);
+    }, 260);
+  }, [isOpen]);
 
-  const toggleDropdown = (label: string) => {
-    setOpenDropdown((current) =>
-      current === label ? null : label
-    );
+  const handleOpen = () => {
+    setClosing(false);
+    setIsOpen(true);
   };
+
+  const toggleDropdown = (label: string) =>
+    setOpenDropdown((cur) => (cur === label ? null : label));
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full bg-white font-sans transition-shadow duration-300 ${
+      className={`sticky top-0 z-50 w-full bg-white font-sans transition-all duration-300 ${
         isScrolled
-          ? 'shadow-[0_4px_20px_rgba(0,0,0,0.08)]'
-          : 'shadow-sm border-b border-gray-100'
+          ? 'shadow-[0_2px_16px_rgba(0,0,0,0.10)]'
+          : 'border-b border-gray-100'
       }`}
     >
 
-      {/* =====================================================
-          TOP BAR
-      ====================================================== */}
-
-      <div className="bg-[color:var(--nfc-dark)] text-white text-[11px] py-4 px-4 font-display">
-
+      {/* ── TOP BAR (desktop only) ──────────────────────────────── */}
+      <div className="hidden sm:block bg-[color:var(--nfc-dark)] text-white text-[10px] py-2 px-4 font-display">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-
           <div className="flex items-center gap-3 min-w-0">
-
-            <span className="bg-[color:var(--nfc-yellow)] text-[color:var(--nfc-dark)] font-display font-extrabold px-2 py-0.5 rounded text-[10px] uppercase shrink-0 whitespace-nowrap">
+            <span className="bg-[color:var(--nfc-yellow)] text-[color:var(--nfc-dark)] font-extrabold px-2 py-0.5 text-[9px] uppercase shrink-0">
               PROCHAIN MATCH
             </span>
-
-            <span className="text-gray-300 hidden sm:block truncate">
-              LIGUE RÉGIONALE ADAMAOUA — J14 :{' '}
-              <strong className="text-white">
-                NGAOUNDÉRÉ FC vs NGAOUNDÉRÉ UNIV FC
-              </strong>
+            <span className="text-gray-300 truncate hidden sm:block">
+              LIGUE RÉGIONALE — J14 :{' '}
+              <strong className="text-white">NFC vs NGAOUNDÉRÉ UNIV FC</strong>
             </span>
-
-            <span className="text-gray-400 hidden md:block text-[10px] font-mono shrink-0 whitespace-nowrap">
+            <span className="text-gray-400 hidden md:block font-mono shrink-0">
               Dim. 04 Oct • 15h30
             </span>
-
           </div>
-
-          <Link
-            href="/calendrier"
-            className="text-[color:var(--nfc-yellow)] font-display font-bold hover:text-white transition-colors shrink-0 flex items-center gap-1.5 text-[10px] tracking-widest uppercase whitespace-nowrap"
-          >
+          <Link href="/calendrier" className="text-[color:var(--nfc-yellow)] font-bold hover:text-white transition-colors shrink-0 flex items-center gap-1.5 text-[9px] tracking-widest uppercase">
             <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--nfc-yellow)] animate-pulse shrink-0" />
             RÉSERVER →
           </Link>
-
         </div>
-
       </div>
 
-      {/* =====================================================
-          NAVBAR
-      ====================================================== */}
-
+      {/* ── MAIN NAV BAR ────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
 
-        <div className="flex items-center h-[100px] gap-8 font-display">
+        {/* ── MOBILE LAYOUT: 3-col grid [user | logo | menu] ─── */}
+        <div className="flex lg:hidden items-center h-14 gap-2">
 
-          {/* =================================================
-              LOGO
-          ================================================= */}
+          {/* LEFT — Espace membre */}
+          <div className="flex-1 flex justify-start">
+            <Link
+              href="/membre"
+              aria-label="Espace supporter"
+              className="flex items-center gap-1.5 text-[color:var(--nfc-green)] hover:bg-[color:var(--nfc-green)]/8 transition-colors px-2 py-1.5 rounded-lg"
+            >
+              <User className="w-5 h-5" />
+              <span className="text-[10px] font-display font-bold uppercase tracking-wider hidden xs:block">Espace</span>
+            </Link>
+          </div>
 
-          <Link
-            href="/"
-            className="flex items-center gap-3 group shrink-0"
-          >
-
-            <div className="relative w-[50px] h-[50px] rounded-full overflow-hidden ring-2 ring-[color:var(--nfc-green)]/20 shadow-md transition-transform duration-300 group-hover:scale-105">
-
-              <Image
-                src="/logo.png"
-                alt="Ngaoundéré FC Logo"
-                fill
-                className="object-contain"
-                priority
-              />
-
+          {/* CENTER — Logo */}
+          <Link href="/" className="flex items-center gap-2 group shrink-0">
+            <div className="relative w-9 h-9 overflow-hidden transition-transform duration-300 group-hover:scale-105">
+              <Image src="/logo.png" alt="NFC Logo" fill className="object-contain" priority />
             </div>
-
-            <div className="hidden sm:block leading-tight">
-
-              <span className="font-display text-[22px] font-extrabold tracking-wider text-[color:var(--nfc-dark)] block whitespace-nowrap">
-                NGAOUNDÉRÉ{' '}
-                <span className="text-[color:var(--nfc-green)]">
-                  FC
-                </span>
-              </span>
-
-              <span className="text-[9px] tracking-[0.18em] text-[color:var(--nfc-green)] font-display font-bold uppercase block whitespace-nowrap">
-                L'ÉTOILE DE L'ADAMAOUA
-              </span>
-
-            </div>
-
+            <span className="font-display text-[15px] font-extrabold tracking-wider text-[color:var(--nfc-dark)]">
+              NFC
+            </span>
           </Link>
 
-          {/* =================================================
-              DESKTOP NAV
-          ================================================= */}
+          {/* RIGHT — Menu burger */}
+          <div className="flex-1 flex justify-end">
+            <button
+              onClick={isOpen ? handleClose : handleOpen}
+              aria-label="Menu principal"
+              aria-expanded={isOpen}
+              className="p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
 
-          <nav className="hidden lg:flex flex-1 items-center justify-center gap-1">
+        {/* ── DESKTOP LAYOUT ──────────────────────────────────── */}
+        <div className="hidden lg:flex items-center h-[72px] gap-8 font-display">
 
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3 group shrink-0">
+            <div className="relative w-[46px] h-[46px] overflow-hidden transition-transform duration-300 group-hover:scale-105">
+              <Image src="/logo.png" alt="Ngaoundéré FC Logo" fill className="object-contain" priority />
+            </div>
+            <div className="leading-tight">
+              <span className="font-display text-[20px] font-extrabold tracking-wider text-[color:var(--nfc-dark)] block whitespace-nowrap">
+                NGAOUNDÉRÉ <span className="text-[color:var(--nfc-green)]">FC</span>
+              </span>
+              <span className="text-[8px] tracking-[0.18em] text-[color:var(--nfc-green)] font-display font-bold uppercase block whitespace-nowrap">
+                L'ÉTOILE DE L'ADAMAOUA
+              </span>
+            </div>
+          </Link>
+
+          {/* Desktop nav links */}
+          <nav className="flex flex-1 items-center justify-center gap-0.5">
             {NAV_ITEMS.map((item) => {
-
               const active = isActive(item.href);
-
-              // ───────────────────────────────────────────────
-              // Lien simple
-              // ───────────────────────────────────────────────
-
               if (!item.children) {
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={linkClass(active)}
-                  >
+                  <Link key={item.href} href={item.href} className={linkClass(active)}>
                     {item.label}
                   </Link>
                 );
               }
-
-              // ───────────────────────────────────────────────
-              // Dropdown
-              // ───────────────────────────────────────────────
-
               const open = openDropdown === item.label;
-
               return (
                 <div
                   key={item.label}
                   className="relative group shrink-0"
-                  onMouseEnter={() => {
-                    setOpenDropdown(item.label);
-                  }}
-                  onMouseLeave={() => {
-                    setOpenDropdown((current) =>
-                      current === item.label
-                        ? null
-                        : current
-                    );
-                  }}
+                  onMouseEnter={() => setOpenDropdown(item.label)}
+                  onMouseLeave={() => setOpenDropdown((cur) => cur === item.label ? null : cur)}
                 >
-
-                  {/* Bouton principal */}
-
                   <button
                     type="button"
-                    onClick={() =>
-                      toggleDropdown(item.label)
-                    }
+                    onClick={() => toggleDropdown(item.label)}
                     aria-expanded={open}
-                    aria-haspopup="true"
                     className={linkClass(active)}
                   >
-
-                    <span className="whitespace-nowrap">
-                      {item.label}
-                    </span>
-
-                    <ChevronDown
-                      className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                        open
-                          ? 'rotate-180'
-                          : 'rotate-0'
-                      }`}
-                    />
-
+                    <span>{item.label}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
                   </button>
-
-                  {/* ─────────────────────────────────────────
-                      Dropdown
-                  ───────────────────────────────────────── */}
-
-                  <div
-                    className={`
-                      absolute
-                      left-0
-                      top-full
-                      z-[60]
-                      pt-2
-
-                      transition-all
-                      duration-150
-
-                      ${
-                        open
-                          ? 'opacity-100 visible pointer-events-auto translate-y-0'
-                          : 'opacity-0 invisible pointer-events-none -translate-y-1'
-                      }
-
-                      group-hover:opacity-100
-                      group-hover:visible
-                      group-hover:pointer-events-auto
-                      group-hover:translate-y-0
-                    `}
-                  >
-
-                    <div className="w-60 bg-white rounded-lg shadow-xl ring-1 ring-black/5 overflow-hidden">
-
+                  {/* Dropdown panel */}
+                  <div className={`absolute left-0 top-full z-[60] pt-2 transition-all duration-150 ${open ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-1 pointer-events-none'} group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:pointer-events-auto`}>
+                    <div className="w-52 bg-white rounded-xl shadow-xl ring-1 ring-black/5 overflow-hidden py-1">
                       {item.children.map((child) => (
-
-                        <Link
-                          key={child.href}
-                          href={child.href}
-                          className={dropdownItemClass}
-                        >
+                        <Link key={child.href} href={child.href} className="flex items-center gap-2.5 px-4 py-2.5 text-[12px] font-display text-gray-700 hover:bg-[#008751]/5 hover:text-[#008751] transition-colors">
+                          {child.icon && <child.icon className="w-3.5 h-3.5 shrink-0 text-[#008751]/60" />}
                           {child.label}
                         </Link>
-
                       ))}
-
                     </div>
-
                   </div>
-
                 </div>
               );
             })}
-
           </nav>
 
-          {/* =================================================
-              DESKTOP BUTTONS
-          ================================================= */}
-
-          <div className="hidden lg:flex items-center gap-3 shrink-0">
-
-            <Link
-              href="/calendrier"
-              className="btn-yellow text-[11px] px-4 py-2.5 whitespace-nowrap"
-            >
+          {/* Desktop CTAs */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <Link href="/calendrier" className="btn-yellow text-[10px] px-4 py-2 whitespace-nowrap">
               BILLETTERIE
             </Link>
-
-            <Link
-              href="/membre"
-              className="btn-green text-[11px] px-4 py-2.5 flex items-center gap-1.5 whitespace-nowrap"
-            >
-
+            <Link href="/membre" className="btn-green text-[10px] px-4 py-2 flex items-center gap-1.5 whitespace-nowrap">
               <User className="w-3.5 h-3.5 shrink-0" />
-
-              <span>
-                ESPACE SUPPORTER
-              </span>
-
-              <ChevronRight className="w-4 h-4 shrink-0" />
-
+              ESPACE SUPPORTER
             </Link>
-
           </div>
-
-          {/* =================================================
-              MOBILE
-          ================================================= */}
-
-          <div className="flex lg:hidden items-center gap-2 shrink-0 ml-auto">
-
-            <Link
-              href="/membre"
-              aria-label="Espace supporter"
-              className="p-2 rounded-lg text-[color:var(--nfc-green)] hover:bg-[color:var(--nfc-green)]/10 transition-colors"
-            >
-              <User className="w-5 h-5" />
-            </Link>
-
-            <button
-              onClick={() =>
-                setIsOpen((v) => !v)
-              }
-              aria-label="Menu principal"
-              aria-expanded={isOpen}
-              className="p-2 rounded-lg text-gray-800 hover:bg-gray-100 transition-colors"
-            >
-
-              {isOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
-
-            </button>
-
-          </div>
-
         </div>
-
       </div>
 
-      {/* =====================================================
-          MOBILE SIDEBAR (SLIDE-OVER DRAWER)
-      ====================================================== */}
+      {/* ════════════════════════════════════════════════════════════
+          MOBILE SIDEBAR — Dark modern drawer
+      ════════════════════════════════════════════════════════════ */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop avec flou */}
+        <div className="fixed inset-0 z-[99] lg:hidden">
+
+          {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity animate-fade-in"
-            onClick={() => setIsOpen(false)}
+            className={`fixed inset-0 bg-black/70 backdrop-blur-sm ${closing ? 'animate-fade-out' : 'animate-fade-in'}`}
+            style={closing ? { animation: 'fadeIn 0.26s ease reverse both' } : {}}
+            onClick={handleClose}
           />
 
-          {/* Panneau latéral Sidebar */}
-          <aside className="fixed inset-y-0 right-0 z-50 w-80 max-w-[85vw] bg-white shadow-2xl flex flex-col justify-between p-5 animate-slide-in-right overflow-y-auto">
-            <div>
-              {/* En-tête Sidebar */}
-              <div className="flex items-center justify-between pb-4 mb-4 border-b border-gray-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="relative w-9 h-9 rounded-full overflow-hidden ring-2 ring-[#008751]/20">
-                    <Image src="/logo.png" alt="NFC Logo" fill className="object-contain" />
-                  </div>
-                  <div>
-                    <h3 className="font-display text-sm font-extrabold text-gray-900 leading-none">NGAOUNDÉRÉ FC</h3>
-                    <span className="text-[9px] font-display font-bold text-[#008751] tracking-wider uppercase">L'Étoile de l'Adamaoua</span>
-                  </div>
+          {/* Sidebar Panel */}
+          <aside
+            className={`fixed inset-y-0 right-0 z-[100] w-[300px] max-w-[88vw] flex flex-col ${closing ? 'animate-slide-out-right' : 'animate-slide-in-right'}`}
+            style={{
+              background: 'linear-gradient(160deg, #0c130e 0%, #0f1f13 60%, #1a2e1d 100%)',
+            }}
+          >
+            {/* ── SIDEBAR HEADER ──────────────────────────────── */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+              <Link href="/" onClick={handleClose} className="flex items-center gap-3">
+                <div className="relative w-10 h-10 overflow-hidden">
+                  <Image src="/logo.png" alt="NFC Logo" fill className="object-contain" />
                 </div>
+                <div>
+                  <h3 className="font-display text-sm font-extrabold text-white leading-none">NGAOUNDÉRÉ FC</h3>
+                  <span className="text-[9px] font-display font-bold text-[#8cea5a] tracking-wider uppercase">L'Étoile de l'Adamaoua</span>
+                </div>
+              </Link>
+              <button
+                onClick={handleClose}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="Fermer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="p-2 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-                  aria-label="Fermer le menu"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+            {/* ── NAVIGATION ─────────────────────────────────── */}
+            <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+              {NAV_ITEMS.map((item, idx) => {
+                const active = isActive(item.href);
+                const IconComp = item.icon;
+                const open = openDropdown === item.label;
 
-              {/* Navigation Items */}
-              <nav className="space-y-1.5 font-display text-xs font-bold">
-                {NAV_ITEMS.map((item) => {
-                  const active = isActive(item.href);
-
-                  if (!item.children) {
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setIsOpen(false)}
-                        className={`flex items-center justify-between px-3.5 py-3 rounded-xl transition-all duration-150 ${
-                          active
-                            ? 'bg-[#008751] text-white shadow-sm'
-                            : 'text-gray-800 hover:bg-gray-50 hover:text-[#008751]'
-                        }`}
-                      >
-                        <span>{item.label}</span>
-                        <ChevronRight className={`w-4 h-4 opacity-50 ${active ? 'text-white' : ''}`} />
-                      </Link>
-                    );
-                  }
-
-                  const open = openDropdown === item.label;
-
+                if (!item.children) {
                   return (
-                    <div key={item.label} className="space-y-1">
-                      <button
-                        type="button"
-                        onClick={() => toggleDropdown(item.label)}
-                        className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl transition-all duration-150 ${
-                          active
-                            ? 'bg-[#008751] text-white shadow-sm'
-                            : 'text-gray-800 hover:bg-gray-50 hover:text-[#008751]'
-                        }`}
-                      >
-                        <span>{item.label}</span>
-                        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-                      </button>
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={handleClose}
+                      className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-150 animate-fade-in-up stagger-${Math.min(idx + 1, 6)} ${
+                        active
+                          ? 'bg-[#008751] text-white'
+                          : 'text-white/80 hover:bg-white/8 hover:text-white'
+                      }`}
+                    >
+                      <span className="flex items-center gap-3">
+                        {IconComp && <IconComp className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-[#8cea5a]/70'}`} />}
+                        <span className="font-display text-xs font-bold uppercase tracking-wide">{item.label}</span>
+                      </span>
+                      <ChevronRight className="w-3.5 h-3.5 opacity-40" />
+                    </Link>
+                  );
+                }
 
-                      {open && (
-                        <div className="pl-3 py-1 space-y-1 border-l-2 border-[#008751]/20 ml-3">
-                          {item.children.map((child) => (
+                return (
+                  <div key={item.label} className={`animate-fade-in-up stagger-${Math.min(idx + 1, 6)}`}>
+                    <button
+                      type="button"
+                      onClick={() => toggleDropdown(item.label)}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-150 ${
+                        active
+                          ? 'bg-[#008751]/30 text-white'
+                          : 'text-white/80 hover:bg-white/8 hover:text-white'
+                      }`}
+                    >
+                      <span className="flex items-center gap-3">
+                        {IconComp && <IconComp className={`w-4 h-4 shrink-0 ${active ? 'text-[#8cea5a]' : 'text-[#8cea5a]/70'}`} />}
+                        <span className="font-display text-xs font-bold uppercase tracking-wide">{item.label}</span>
+                      </span>
+                      <ChevronDown className={`w-3.5 h-3.5 opacity-60 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {open && (
+                      <div className="mt-0.5 ml-4 pl-3 border-l border-white/10 space-y-0.5 pb-1">
+                        {item.children.map((child) => {
+                          const ChildIcon = child.icon;
+                          return (
                             <Link
                               key={child.href}
                               href={child.href}
-                              onClick={() => setIsOpen(false)}
-                              className="block px-3 py-2 rounded-lg text-xs text-gray-600 hover:bg-gray-50 hover:text-[#008751] transition-colors"
+                              onClick={handleClose}
+                              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-white/60 hover:text-white hover:bg-white/8 transition-colors animate-slide-in"
                             >
-                              {child.label}
+                              {ChildIcon && <ChildIcon className="w-3.5 h-3.5 shrink-0 text-[#8cea5a]/60" />}
+                              <span className="font-display text-[11px] font-semibold">{child.label}</span>
                             </Link>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </nav>
-            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </nav>
 
-            {/* Pied de Sidebar avec CTAs */}
-            <div className="pt-4 border-t border-gray-100 space-y-2.5 mt-6">
+            {/* ── PROCHAIN MATCH (mobile only) ────────────────── */}
+            <div className="mx-3 mb-3 px-4 py-3 rounded-xl border border-white/8 bg-white/5 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-[#8cea5a]">Prochain Match</p>
+                <p className="text-[11px] font-display font-semibold text-white truncate mt-0.5">NFC vs NGAOUNDÉRÉ UNIV FC</p>
+                <p className="text-[10px] text-white/40 font-mono">Dim. 04 Oct • 15h30</p>
+              </div>
               <Link
                 href="/calendrier"
-                onClick={() => setIsOpen(false)}
-                className="btn-yellow w-full justify-center py-2.5 text-xs whitespace-nowrap shadow-sm"
+                onClick={handleClose}
+                className="shrink-0 bg-[#8cea5a] text-[#0c130e] text-[9px] font-display font-extrabold uppercase px-3 py-1.5 rounded-lg"
               >
-                BILLETTERIE
+                Billet
               </Link>
+            </div>
 
+            {/* ── SIDEBAR FOOTER CTAs ─────────────────────────── */}
+            <div className="px-3 pb-5 space-y-2 border-t border-white/8 pt-3">
               <Link
                 href="/membre"
-                onClick={() => setIsOpen(false)}
-                className="btn-green w-full justify-center py-2.5 text-xs whitespace-nowrap shadow-sm flex items-center gap-2"
+                onClick={handleClose}
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#008751] text-white font-display text-xs font-bold uppercase tracking-wide hover:bg-[#008751]/90 transition-colors"
               >
                 <User className="w-4 h-4" />
-                <span>ESPACE SUPPORTER</span>
+                ESPACE SUPPORTER
               </Link>
-
-              <p className="text-[10px] text-center text-gray-400 font-mono pt-2">
-                © 2026 Ngaoundéré FC • Adamaoua
-              </p>
+              <Link
+                href="/calendrier"
+                onClick={handleClose}
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#8cea5a] text-[#0c130e] font-display text-xs font-bold uppercase tracking-wide hover:opacity-90 transition-opacity"
+              >
+                <Ticket className="w-4 h-4" />
+                BILLETTERIE
+              </Link>
+              <p className="text-center text-[9px] text-white/25 font-mono pt-1">© 2026 Ngaoundéré FC</p>
             </div>
           </aside>
         </div>
