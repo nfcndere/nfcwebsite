@@ -20,120 +20,109 @@ function MatchCard({
   onResume: (m: MatchItem) => void;
 }) {
   const isFinished = match.status === 'TERMINE';
-  const isHome = match.homeTeam.toLowerCase().includes('ngaoundéré');
-
-  const nfcWon =
-    isFinished &&
-    ((isHome && (match.homeScore ?? 0) > (match.awayScore ?? 0)) ||
-      (!isHome && (match.awayScore ?? 0) > (match.homeScore ?? 0)));
-  const draw =
-    isFinished && match.homeScore === match.awayScore;
-
-  const resultColor = nfcWon
-    ? 'bg-[#008751]/10 border-[#008751]'
-    : draw
-    ? 'bg-amber-50 border-amber-400'
-    : isFinished
-    ? 'bg-rose-50 border-rose-400'
-    : 'bg-white border-gray-200';
 
   const dateObj = new Date(match.date);
+  const formattedDate = dateObj
+    .toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    .toUpperCase();
+  const formattedTime = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+  // Extrait la compétition et la journée
+  const parts = match.competition.split('-');
+  const competitionTitle = parts[0]?.trim().toUpperCase() || "LIGUE RÉGIONALE DE L'ADAMAOUA";
+  const matchDayText = parts[1]?.trim().toUpperCase() || 'MATCH OFFICIEL';
 
   return (
-    <div className={`bg-white border-l-4 ${resultColor} border-y border-r border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 rounded-lg overflow-hidden`}>
-      <div className="p-3.5 sm:p-5 flex flex-col lg:flex-row items-center gap-4 lg:gap-5">
+    <div className="bg-white border-y-2 border-y-[color:var(--nfc-yellow)] border-x border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 rounded-xl overflow-hidden mb-4">
+      {/* Date Header Centré */}
+      <div className="pt-3 pb-1 text-center border-b border-gray-50 bg-[#fafafa]/60">
+        <span className="font-display font-extrabold text-[11px] sm:text-xs text-gray-700 tracking-wider">
+          {formattedDate}
+        </span>
+      </div>
 
-        {/* Date & Competition */}
-        <div className="flex flex-col items-center lg:items-start space-y-1 lg:w-48 text-center lg:text-left shrink-0">
-          <span className={`badge-category ${isFinished ? 'badge-dark' : 'badge-green'} text-[9px]`}>
-            {match.competition}
+      {/* Main Bar Content */}
+      <div className="p-4 sm:p-5 flex flex-col lg:flex-row items-center justify-between gap-4 sm:gap-6">
+        
+        {/* Left Column: Competition & Journée */}
+        <div className="flex flex-col items-center lg:items-start text-center lg:text-left shrink-0 lg:w-1/4">
+          <span className="font-display font-extrabold text-xs text-gray-900 tracking-wide uppercase">
+            {competitionTitle}
           </span>
-          <div className="flex items-center gap-1.5 text-gray-600 text-xs mt-1">
-            <Calendar className="w-3.5 h-3.5 text-[#008751]" />
-            <span className="font-mono">
-              {dateObj.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
-            </span>
+          <span className="font-display text-xs font-bold text-[#008751] underline underline-offset-4 decoration-2 mt-0.5 cursor-pointer hover:text-[#00623b]">
+            {matchDayText}
+          </span>
+        </div>
+
+        {/* Center Column: Teams + Time Pill + Stadium */}
+        <div className="flex flex-col items-center flex-grow w-full lg:w-2/4">
+          <div className="flex items-center justify-center gap-2 sm:gap-4 w-full">
+            {/* Home Team */}
+            <div className="flex items-center justify-end gap-2.5 w-5/12 text-right">
+              <span className="font-display font-extrabold text-xs sm:text-sm text-gray-900 uppercase tracking-tight truncate">
+                {match.homeTeam}
+              </span>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#008751]/10 border border-[#008751]/20 flex items-center justify-center shrink-0 shadow-xs">
+                {match.homeLogo ? (
+                  <img src={match.homeLogo} alt={match.homeTeam} className="w-6 h-6 object-contain" />
+                ) : (
+                  <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-[#008751]" />
+                )}
+              </div>
+            </div>
+
+            {/* Time / Score Pill */}
+            <div className="bg-[color:var(--nfc-yellow)] text-[#0c130e] font-display font-extrabold text-sm sm:text-lg px-4 sm:px-6 py-2 sm:py-2.5 rounded-2xl shadow-sm shrink-0 flex items-center justify-center min-w-[85px] sm:min-w-[105px] border border-amber-300">
+              {isFinished ? (
+                <span>{match.homeScore} - {match.awayScore}</span>
+              ) : (
+                <span>{formattedTime}</span>
+              )}
+            </div>
+
+            {/* Away Team */}
+            <div className="flex items-center justify-start gap-2.5 w-5/12 text-left">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 shadow-xs">
+                {match.awayLogo ? (
+                  <img src={match.awayLogo} alt={match.awayTeam} className="w-6 h-6 object-contain" />
+                ) : (
+                  <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+                )}
+              </div>
+              <span className="font-display font-extrabold text-xs sm:text-sm text-gray-900 uppercase tracking-tight truncate">
+                {match.awayTeam}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 text-gray-500 text-xs">
-            <Clock className="w-3 h-3" />
-            <span className="font-mono">
-              {dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+
+          {/* Sub Info (Stadium & Channel/Ligue) */}
+          <div className="mt-2 text-center">
+            <span className="text-[10px] font-display font-bold uppercase text-gray-400 tracking-wider">
+              {match.stadium} — <span className="underline cursor-pointer hover:text-[#008751]">FECAFOOT ADAMAOUA</span>
             </span>
-          </div>
-          <div className="flex items-center gap-1 text-gray-400 text-[10px]">
-            <MapPin className="w-3 h-3 shrink-0" />
-            <span className="truncate max-w-[140px]">{match.stadium}</span>
           </div>
         </div>
 
-        {/* Match Scoreboard */}
-        <div className="flex items-center justify-between sm:justify-center gap-2 sm:gap-8 flex-grow w-full">
-
-          <div className={`flex flex-col items-center sm:items-end gap-1 w-1/3 ${isHome ? 'text-[#008751]' : 'text-gray-700'}`}>
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#008751]/10 flex items-center justify-center rounded-full">
-              <Shield className={`w-4 h-4 sm:w-5 sm:h-5 ${isHome ? 'text-[#008751]' : 'text-gray-400'}`} />
-            </div>
-            <span className="font-display font-bold text-xs sm:text-sm text-center sm:text-right leading-tight truncate max-w-full">
-              {match.homeTeam}
-            </span>
-            {isHome && <span className="text-[8px] sm:text-[9px] text-[#008751] font-display font-bold">DOMICILE</span>}
-          </div>
-
-          <div className="shrink-0 px-3 py-2 sm:px-4 sm:py-3 bg-[#0c130e] text-center min-w-[70px] sm:min-w-[80px] rounded-lg">
-            {isFinished ? (
-              <div className="font-display text-xl sm:text-2xl font-extrabold text-white">
-                {match.homeScore} <span className="text-gray-500">-</span> {match.awayScore}
-              </div>
-            ) : (
-              <div className="font-display text-xs sm:text-sm font-bold text-[color:var(--nfc-yellow)]">
-                {dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-              </div>
-            )}
-            <span className="text-[7px] sm:text-[8px] font-extrabold uppercase tracking-widest text-gray-400 block mt-0.5">
-              {isFinished ? 'TERMINÉ' : 'À VENIR'}
-            </span>
-          </div>
-
-          <div className={`flex flex-col items-center sm:items-start gap-1 w-1/3 ${!isHome ? 'text-[#008751]' : 'text-gray-700'}`}>
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 flex items-center justify-center rounded-full">
-              <Shield className={`w-4 h-4 sm:w-5 sm:h-5 ${!isHome ? 'text-[#008751]' : 'text-gray-400'}`} />
-            </div>
-            <span className="font-display font-bold text-xs sm:text-sm text-center sm:text-left leading-tight truncate max-w-full">
-              {match.awayTeam}
-            </span>
-            {!isHome && <span className="text-[8px] sm:text-[9px] text-[#008751] font-display font-bold">NFC</span>}
-          </div>
-        </div>
-
-        {/* Action Button */}
-        <div className="flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto">
+        {/* Right Column: CTA Action */}
+        <div className="flex items-center justify-center lg:justify-end shrink-0 lg:w-1/4 mt-2 lg:mt-0">
           {!isFinished ? (
             <button
               onClick={() => onTicket(match)}
-              className="btn-yellow text-xs py-2 px-3 justify-center flex items-center gap-1.5 w-full sm:w-auto"
+              className="font-display font-extrabold text-xs text-[#008751] uppercase tracking-wider underline underline-offset-4 decoration-2 hover:text-[#005c37] transition-colors py-1 px-2"
             >
-              <Ticket className="w-4 h-4" />
-              BILLETTERIE
+              ACHETER UNE PLACE
             </button>
           ) : (
             <button
               onClick={() => onResume(match)}
-              className="btn-dark text-xs py-2 px-3 justify-center flex items-center gap-1.5 w-full sm:w-auto"
+              className="font-display font-extrabold text-xs text-[#0c130e] uppercase tracking-wider underline underline-offset-4 decoration-2 hover:text-[#008751] transition-colors py-1 px-2"
             >
-              <ChevronRight className="w-4 h-4" />
-              RÉSUMÉ
+              RÉSUMÉ DU MATCH
             </button>
           )}
         </div>
-      </div>
 
-      {isFinished && match.summary && (
-        <div className="px-4 pb-3">
-          <p className="text-[11px] text-gray-400 italic border-t border-gray-100 pt-2 leading-relaxed">
-            {match.summary}
-          </p>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -198,27 +187,7 @@ export default function CalendrierPage() {
   return (
     <div className="bg-[#f7f8f7] text-[#1f2937] font-sans space-y-6 sm:space-y-12 pb-16">
 
-      <PageHeader
-        tag="LIGUE RÉGIONALE DE L'ADAMAOUA & COUPE"
-        title="CALENDRIER &"
-        titleHighlight="RÉSULTATS"
-        description="Suivez toutes les rencontres du Ngaoundéré Football Club, les scores en direct, les résumés et la billetterie officielle."
-        backgroundImageUrl="https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1600&auto=format&fit=crop"
-        badgeContent={
-          <div className="bg-[#0c130e]/90 backdrop-blur-md p-4 sm:p-6 rounded-2xl border border-white/10 text-center w-full lg:w-72 shadow-xl">
-            <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden ring-2 ring-[#008751] shadow-md mx-auto mb-2">
-              <Image src="/logo.png" alt="NFC Crest" fill className="object-contain" />
-            </div>
-            <span className="badge-category badge-green text-[9px] mb-2 inline-block font-bold">PROCHAIN MATCH</span>
-            <h3 className="font-display text-sm font-bold text-white">
-              {nextMatch ? `${nextMatch.homeTeam} vs ${nextMatch.awayTeam}` : 'NGAOUNDÉRÉ FC'}
-            </h3>
-            <p className="text-xs text-[color:var(--nfc-yellow)] mt-1 font-mono">
-              {nextMatch?.date ? new Date(nextMatch.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : 'Adamaoua'}
-            </p>
-          </div>
-        }
-      />
+      
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
 

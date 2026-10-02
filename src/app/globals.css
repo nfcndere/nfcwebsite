@@ -29,7 +29,48 @@
   --nfc-border: #e5e7e6;
   --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-spring: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Mobile-first spacing tokens */
+  --page-px:      12px;   /* horizontal page padding (mobile) */
+  --page-px-sm:   20px;   /* horizontal page padding (≥640px) */
+  --page-px-lg:   32px;   /* horizontal page padding (≥1024px) */
+  --section-gap:  40px;   /* vertical gap between sections (mobile) */
+  --section-gap-md: 64px; /* vertical gap (≥768px) */
 }
+
+/* ========================================
+   MOBILE-FIRST BASE OVERRIDES
+   ======================================== */
+
+/* Smaller base font on mobile so everything feels less cramped */
+html {
+  font-size: 14px; /* down from browser default 16px on mobile */
+}
+@media (min-width: 640px) {
+  html { font-size: 15px; }
+}
+@media (min-width: 1024px) {
+  html { font-size: 16px; }
+}
+
+/* Tighter page container padding on mobile */
+@media (max-width: 639px) {
+  .max-w-7xl,
+  .max-w-6xl,
+  .max-w-5xl {
+    padding-left:  var(--page-px) !important;
+    padding-right: var(--page-px) !important;
+  }
+
+  /* Reduce section vertical gaps on mobile */
+  .space-y-14 { --tw-space-y-reverse: 0; margin-top: 32px !important; }
+  .space-y-12 { --tw-space-y-reverse: 0; margin-top: 28px !important; }
+  .space-y-16 { --tw-space-y-reverse: 0; margin-top: 36px !important; }
+
+  /* Make card images taller on mobile (less padding wasted) */
+  .card-img-mobile { height: 200px !important; }
+}
+
 
 /* ========================================
    BASE RESET & TYPOGRAPHY
@@ -344,16 +385,135 @@ img {
 
 /* ========================================
    SHADOW UTILITIES
-   Default: avoid colored shadows; use dark shadow on hover for selected elements
    ======================================== */
 .hover-dark-shadow { transition: var(--transition-spring); }
 .hover-dark-shadow:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.12); transform: translateY(-1px); }
 .shadow-none { box-shadow: none !important; }
 
-/* Neutralize Tailwind shadow utilities globally (prefer explicit utility `hover-dark-shadow` for shadows) */
-.shadow, .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl, .shadow-inner {
-  box-shadow: none !important;
+/* ========================================
+   ANIMATIONS & KEYFRAMES
+   ======================================== */
+
+/* --- Fade in up (cards, sections) --- */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.hover\:shadow-sm:hover, .hover\:shadow, .hover\:shadow-md:hover, .hover\:shadow-lg:hover, .hover\:shadow-xl:hover, .hover\:shadow-2xl:hover {
-  box-shadow: none !important;
+
+/* --- Fade in (backdrop, overlays) --- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* --- Slide in from right (sidebar drawer) --- */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* --- Slide out to right (sidebar close) --- */
+@keyframes slideOutRight {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(100%); }
+}
+
+/* --- Slide in from top (dropdowns, toasts) --- */
+@keyframes slideInFromTop {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Page enter (main content) --- */
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Scale in (modals, cards) --- */
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Animation utility classes */
+.animate-fade-in-up  { animation: fadeInUp 0.5s cubic-bezier(0.4,0,0.2,1) both; }
+.animate-fade-in     { animation: fadeIn 0.3s ease both; }
+.animate-slide-in-right { animation: slideInRight 0.32s cubic-bezier(0.32,0.72,0,1) both; }
+.animate-slide-out-right { animation: slideOutRight 0.28s cubic-bezier(0.32,0.72,0,1) both; }
+.animate-slide-in    { animation: slideInFromTop 0.3s cubic-bezier(0.4,0,0.2,1) both; }
+.animate-page-enter  { animation: pageEnter 0.45s cubic-bezier(0.4,0,0.2,1) both; }
+.animate-scale-in    { animation: scaleIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both; }
+
+/* Stagger delays for children (use with animate-fade-in-up) */
+.stagger-1  { animation-delay: 0.05s; }
+.stagger-2  { animation-delay: 0.10s; }
+.stagger-3  { animation-delay: 0.15s; }
+.stagger-4  { animation-delay: 0.20s; }
+.stagger-5  { animation-delay: 0.25s; }
+.stagger-6  { animation-delay: 0.30s; }
+
+/* ========================================
+   PAGE TRANSITION WRAPPER
+   ======================================== */
+.page-transition {
+  animation: pageEnter 0.4s cubic-bezier(0.4,0,0.2,1) both;
+}
+
+/* ========================================
+   MOBILE-FIRST TYPOGRAPHY SCALE
+   ======================================== */
+@media (max-width: 640px) {
+  .section-title {
+    font-size: clamp(18px, 5vw, 26px);
+  }
+
+  /* Reduce page header hero text on mobile */
+  h1.hero-title {
+    font-size: clamp(22px, 6vw, 36px);
+  }
+
+  /* Compact spacing helpers on mobile */
+  .mobile-compact { padding: 0 12px; }
+  .mobile-text-sm { font-size: 12px; }
+}
+
+/* ========================================
+   IMAGE UTILITY
+   ======================================== */
+img {
+  display: block;
+  max-width: 100%;
+}
+
+.img-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   FORM INPUTS
+   ======================================== */
+.form-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1.5px solid #d1d5db;
+  background: #f9fafb;
+  font-size: 13px;
+  color: var(--nfc-text);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-input:focus {
+  border-color: var(--nfc-green);
+  box-shadow: 0 0 0 3px rgba(31,95,61,0.08);
+  background: #ffffff;
+}
+
+.form-input::placeholder {
+  color: #9ca3af;
 }

@@ -107,6 +107,13 @@ export const ACADEMY_STAFF_DATA = [
     detail: 'Encadrement Technique Pré-Formation & Jeunes (Saison 2026-2027)',
     badge: 'ENTRAÎNEURE',
   },
+  {
+    id: 'ac5',
+    name: 'ZE MEDOMO GUY APPOLINAIRE',
+    role: 'Médecin du Club',
+    detail: 'Suivi médical, prévention et soin des joueurs de l\'Académie (Saison 2026-2027)',
+    badge: 'MÉDECIN',
+  },
 ];
 
 // ===================================

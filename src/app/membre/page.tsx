@@ -89,14 +89,7 @@ export default function MembrePage() {
         titleHighlight="MEMBRE NFC"
         description="Accédez à vos avantages exclusifs, réductions sur la billetterie, réductions boutique et votre carte de supporter numérique."
         backgroundImageUrl="https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=1600&auto=format&fit=crop"
-        badgeContent={
-          <div className="bg-[color:var(--nfc-dark)]/90 backdrop-blur-md p-6 border border-white/10 text-center w-full lg:w-72 shadow-xl">
-            <div className="relative w-14 h-14 rounded-full overflow-hidden ring-2 ring-[color:var(--nfc-green)] shadow-md mx-auto mb-2">
-              <Image src="/logo.png" alt="NFC Crest" fill className="object-contain" />
-            </div>
-            <p className="text-xs text-gray-400 mt-1">Carte Numérique Officielle</p>
-          </div>
-        }
+        
       />
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">

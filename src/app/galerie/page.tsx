@@ -55,16 +55,7 @@ export default function GaleriePage() {
         titleHighlight="PHOTOS & VIDÉOS"
         description="Revivez les temps forts, les célébrations et les moments coulisses du Ngaoundéré Football Club en images."
         backgroundImageUrl="/galerie baneer (1).jpg"
-        badgeContent={
-          <div className="bg-[#0c130e]/90 backdrop-blur-md p-4 sm:p-6 rounded-2xl border border-white/10 text-center w-full lg:w-72 shadow-xl">
-            <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden ring-2 ring-[#008751] shadow-md mx-auto mb-2">
-              <Image src="/logo.png" alt="NFC Crest" fill className="object-contain" />
-            </div>
-            <span className="badge-category badge-green text-[9px] mb-2 inline-block font-bold">HAUTE DÉFINITION</span>
-            <h3 className="font-display text-base sm:text-lg font-extrabold text-white">{mediaList.length} MÉDIAS DISPONIBLES</h3>
-            <p className="text-xs text-[color:var(--nfc-yellow)] mt-1 font-mono">Photos & Vidéos Officielles</p>
-          </div>
-        }
+        
       />
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-6 sm:space-y-10">

@@ -1,92 +1,126 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { PageHeader } from '@/components/ui/PageHeader';
-import { SectionTag } from '@/components/ui/SectionTag';
-import { STANDINGS_DATA } from '@/lib/mock-data';
-import { Shield, Trophy, TrendingUp, Info } from 'lucide-react';
 import Image from 'next/image';
+import { SectionTag } from '@/components/ui/SectionTag';
+import { Shield, Trophy, TrendingUp, Info } from 'lucide-react';
+
+interface NFCStanding {
+  teamName: string;
+  rank: number;
+  position?: number;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
+  form: string;
+}
+
+const DEFAULT_NFC: NFCStanding = {
+  teamName: 'Ngaoundéré FC',
+  rank: 1,
+  played: 13,
+  won: 10,
+  drawn: 1,
+  lost: 2,
+  goalsFor: 34,
+  goalsAgainst: 12,
+  goalDifference: 22,
+  points: 31,
+  form: 'V-V-N-V-V',
+};
+
+// Modèles d'accronymes ou longueurs de squelette pour simuler des noms d'équipes réalistes
+const SKELETON_WIDTHS = ['w-36', 'w-44', 'w-32', 'w-40', 'w-28', 'w-36', 'w-48'];
 
 export default function ClassementPage() {
-  const [standings, setStandings] = useState<any[]>(STANDINGS_DATA);
+  const [nfcData, setNfcData] = useState<NFCStanding>(DEFAULT_NFC);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     async function fetchStandings() {
       try {
         const res = await fetch('/api/standings');
         if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
-            const formatted = data.map((item: any, idx: number) => ({
-              teamName: item.teamName,
-              position: item.rank || idx + 1,
-              points: item.points || 0,
-              played: item.played || 0,
-              won: item.won || 0,
-              drawn: item.drawn || 0,
-              lost: item.lost || 0,
-              goalsFor: item.goalsFor || 0,
-              goalsAgainst: item.goalsAgainst || 0,
-              goalDifference: item.goalDifference || 0,
-              form: item.form || 'V-V-N-V-V',
-            }));
-            setStandings(formatted);
+          const json = await res.json();
+          if (json.nfc) {
+            setNfcData({
+              teamName: json.nfc.teamName || 'Ngaoundéré FC',
+              rank: json.nfc.rank || json.nfc.position || 1,
+              played: json.nfc.played || 0,
+              won: json.nfc.won || 0,
+              drawn: json.nfc.drawn || 0,
+              lost: json.nfc.lost || 0,
+              goalsFor: json.nfc.goalsFor || 0,
+              goalsAgainst: json.nfc.goalsAgainst || 0,
+              goalDifference: json.nfc.goalDifference || 0,
+              points: json.nfc.points || 0,
+              form: json.nfc.form || 'V-V-N-V-V',
+            });
+          } else if (Array.isArray(json) && json.length > 0) {
+            const found = json.find((t: any) => t.teamName?.includes('Ngaoundéré'));
+            if (found) {
+              setNfcData({
+                teamName: found.teamName,
+                rank: found.rank || found.position || 1,
+                played: found.played || 0,
+                won: found.won || 0,
+                drawn: found.drawn || 0,
+                lost: found.lost || 0,
+                goalsFor: found.goalsFor || 0,
+                goalsAgainst: found.goalsAgainst || 0,
+                goalDifference: found.goalDifference || 0,
+                points: found.points || 0,
+                form: found.form || 'V-V-N-V-V',
+              });
+            }
           }
         }
       } catch (error) {
-        console.warn('Utilisation du fallback local pour le classement');
+        console.warn('Utilisation du fallback local pour les données de classement');
+      } finally {
+        setLoading(false);
       }
     }
     fetchStandings();
   }, []);
 
-  const nfcStanding = standings.find((team) => team.teamName.includes('Ngaoundéré')) ?? standings[0];
+  const totalRows = 8;
+  const nfcRank = nfcData.rank || 1;
+  const rows = Array.from({ length: totalRows }, (_, i) => i + 1);
 
   return (
     <div className="bg-[color:var(--nfc-bg)] text-[color:var(--nfc-text)] font-sans space-y-6 sm:space-y-12 pb-16">
-
-      <PageHeader
-        tag="LIGUE RÉGIONALE DE L'ADAMAOUA — SAISON 2025-2026"
-        title="CLASSEMENT"
-        titleHighlight="OFFICIEL"
-        description="Suivez la position du Ngaoundéré Football Club au sein du championnat de la Ligue Régionale de l'Adamaoua."
-        backgroundImageUrl="https://images.unsplash.com/photo-1517466787929-bc90951d0974?q=80&w=1600&auto=format&fit=crop"
-        badgeContent={
-          <div className="bg-[#0c130e]/90 backdrop-blur-md p-4 sm:p-6 rounded-2xl border border-white/10 text-center w-full lg:w-72 shadow-xl">
-            <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden ring-2 ring-[#008751] shadow-md mx-auto mb-2">
-              <Image src="/logo.png" alt="NFC Crest" fill className="object-contain" />
-            </div>
-            <span className="badge-category badge-green text-[9px] mb-2 inline-block font-bold">
-              {nfcStanding.position}{nfcStanding.position === 1 ? 'ÈRE' : 'ÈME'} POSITION
-            </span>
-            <h3 className="font-display text-xl sm:text-2xl font-extrabold text-white">{nfcStanding.points} PTS</h3>
-            <p className="text-xs text-gray-400 mt-1">Différence de buts : {nfcStanding.goalDifference > 0 ? `+${nfcStanding.goalDifference}` : nfcStanding.goalDifference}</p>
-          </div>
-        }
-      />
-
       <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-4 sm:space-y-6">
         <SectionTag label="Classement général" />
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-
+          
+          {/* Header section */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4 sm:p-5 border-b border-gray-100">
             <div>
               <h2 className="font-display text-base sm:text-xl font-bold text-gray-900 flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-[#008751]" />
                 TABLEAU GÉNÉRAL LIGUE RÉGIONALE
               </h2>
-              <p className="text-xs text-gray-500 mt-0.5">Mise à jour automatique après chaque rencontre officielle.</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Seules les statistiques officielles du <strong className="text-[#008751]">Ngaoundéré FC</strong> sont synchronisées en direct via l'API. Les 7 autres équipes affichent un chargement temporaire.
+              </p>
             </div>
-            <div className="flex items-center gap-3 text-[10px] sm:text-[11px] font-semibold">
+            <div className="flex items-center gap-3 text-[10px] sm:text-[11px] font-semibold shrink-0">
               <span className="flex items-center gap-1.5 text-[#008751]">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#008751] inline-block" /> Accession playoffs
+                <span className="w-2.5 h-2.5 rounded-full bg-[#008751] inline-block" /> NFC (Données en direct)
               </span>
-              <span className="flex items-center gap-1.5 text-gray-500">
-                <span className="w-2.5 h-2.5 rounded-full bg-gray-300 inline-block" /> Maintien
+              <span className="flex items-center gap-1.5 text-gray-400">
+                <span className="w-2.5 h-2.5 rounded-full bg-gray-200 inline-block" /> En attente de la Ligue
               </span>
             </div>
           </div>
 
+          {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
@@ -105,72 +139,121 @@ export default function ClassementPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {standings.map((item) => {
-                  const isNFC = item.teamName.includes('Ngaoundéré FC');
-                  const isTop2 = item.position <= 2;
+                {rows.map((pos, idx) => {
+                  const isNFC = pos === nfcRank;
+
+                  if (isNFC) {
+                    return (
+                      <tr
+                        key={`nfc-row-${pos}`}
+                        className="bg-[#008751]/10 border-l-4 border-[#008751] font-semibold transition-colors duration-150"
+                      >
+                        <td className="py-3.5 px-3 text-center">
+                          <span className="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full text-xs font-bold font-display bg-[#008751] text-white shadow-sm">
+                            {pos}
+                          </span>
+                        </td>
+
+                        <td className="py-3.5 px-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 sm:w-8 sm:h-8 relative shrink-0">
+                              <Image
+                                src="/logo.png"
+                                alt="Ngaoundéré FC Logo"
+                                width={32}
+                                height={32}
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                            <span className="text-xs sm:text-sm font-display font-bold text-[#008751]">
+                              {nfcData.teamName}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="py-3.5 px-2 text-center font-mono text-gray-800 font-bold">{nfcData.played}</td>
+                        <td className="py-3.5 px-2 text-center font-mono text-[#008751] font-extrabold">{nfcData.won}</td>
+                        <td className="py-3.5 px-2 text-center font-mono text-gray-600">{nfcData.drawn}</td>
+                        <td className="py-3.5 px-2 text-center font-mono text-rose-600">{nfcData.lost}</td>
+                        <td className="py-3.5 px-2 text-center font-mono text-gray-800 hidden sm:table-cell">{nfcData.goalsFor}</td>
+                        <td className="py-3.5 px-2 text-center font-mono text-gray-800 hidden sm:table-cell">{nfcData.goalsAgainst}</td>
+                        <td className="py-3.5 px-2 text-center font-mono text-xs font-bold text-gray-700">
+                          {nfcData.goalDifference > 0 ? `+${nfcData.goalDifference}` : nfcData.goalDifference}
+                        </td>
+
+                        <td className="py-3.5 px-3 text-center hidden md:table-cell">
+                          <div className="flex items-center justify-center gap-1">
+                            {nfcData.form?.split('-').map((res: string, i: number) => {
+                              const colors =
+                                res === 'V' ? 'bg-[#008751] text-white' :
+                                res === 'N' ? 'bg-[color:var(--nfc-yellow)] text-white' :
+                                'bg-rose-500 text-white';
+                              return (
+                                <span key={i} className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${colors}`}>
+                                  {res}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </td>
+
+                        <td className="py-3.5 px-3 text-center text-sm sm:text-base font-extrabold font-display text-[#008751]">
+                          {nfcData.points}
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  // SKELETON ROW
+                  const skeletonWidth = SKELETON_WIDTHS[idx % SKELETON_WIDTHS.length];
 
                   return (
-                    <tr
-                      key={item.teamName}
-                      className={`transition-colors duration-150 ${
-                        isNFC
-                          ? 'bg-[#008751]/10 border-l-4 border-[#008751]'
-                          : 'hover:bg-[#f7f8f7]'
-                      }`}
-                    >
+                    <tr key={`skeleton-row-${pos}`} className="bg-gray-50/40 hover:bg-gray-100/30 transition-colors">
                       <td className="py-3 px-3 text-center">
-                        <span className={`inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full text-xs font-bold font-display ${
-                          isTop2
-                            ? 'bg-[#008751] text-white'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {item.position}
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium text-gray-400 bg-gray-100/80">
+                          {pos}
                         </span>
                       </td>
 
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-2.5">
-                          <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                            isNFC ? 'bg-[#008751] text-white' : 'bg-gray-100 text-gray-500'
-                          }`}>
-                            {isNFC ? <Shield className="w-4 h-4" /> : <Trophy className="w-3.5 h-3.5" />}
-                          </div>
-                          <span className={`text-xs sm:text-sm font-display font-bold ${isNFC ? 'text-[#008751]' : 'text-gray-800'}`}>
-                            {item.teamName}
-                          </span>
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 animate-pulse shrink-0" />
+                          <div className={`h-3.5 ${skeletonWidth} bg-gray-200 rounded animate-pulse`} />
                         </div>
                       </td>
 
-                      <td className="py-3 px-2 text-center font-mono text-gray-700">{item.played}</td>
-                      <td className="py-3 px-2 text-center font-mono text-[#008751] font-semibold">{item.won}</td>
-                      <td className="py-3 px-2 text-center font-mono text-gray-500">{item.drawn}</td>
-                      <td className="py-3 px-2 text-center font-mono text-rose-500">{item.lost}</td>
-                      <td className="py-3 px-2 text-center font-mono text-gray-700 hidden sm:table-cell">{item.goalsFor}</td>
-                      <td className="py-3 px-2 text-center font-mono text-gray-700 hidden sm:table-cell">{item.goalsAgainst}</td>
-                      <td className="py-3 px-2 text-center font-mono text-xs font-semibold text-gray-600">
-                        {item.goalDifference > 0 ? `+${item.goalDifference}` : item.goalDifference}
+                      <td className="py-3 px-2 text-center">
+                        <div className="h-3.5 w-5 mx-auto bg-gray-200 rounded animate-pulse" />
+                      </td>
+                      <td className="py-3 px-2 text-center">
+                        <div className="h-3.5 w-5 mx-auto bg-gray-200 rounded animate-pulse" />
+                      </td>
+                      <td className="py-3 px-2 text-center">
+                        <div className="h-3.5 w-5 mx-auto bg-gray-200 rounded animate-pulse" />
+                      </td>
+                      <td className="py-3 px-2 text-center">
+                        <div className="h-3.5 w-5 mx-auto bg-gray-200 rounded animate-pulse" />
+                      </td>
+                      <td className="py-3 px-2 text-center hidden sm:table-cell">
+                        <div className="h-3.5 w-6 mx-auto bg-gray-200 rounded animate-pulse" />
+                      </td>
+                      <td className="py-3 px-2 text-center hidden sm:table-cell">
+                        <div className="h-3.5 w-6 mx-auto bg-gray-200 rounded animate-pulse" />
+                      </td>
+                      <td className="py-3 px-2 text-center">
+                        <div className="h-3.5 w-7 mx-auto bg-gray-200 rounded animate-pulse" />
                       </td>
 
                       <td className="py-3 px-3 text-center hidden md:table-cell">
                         <div className="flex items-center justify-center gap-1">
-                          {item.form?.split('-').map((res: string, i: number) => {
-                            const colors =
-                              res === 'V' ? 'bg-[#008751] text-white' :
-                              res === 'N' ? 'bg-[color:var(--nfc-yellow)] text-white' :
-                              'bg-rose-500 text-white';
-                            return (
-                              <span key={i} className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${colors}`}>
-                                {res}
-                              </span>
-                            );
-                          })}
+                          <div className="w-4 h-4 rounded-full bg-gray-200 animate-pulse" />
+                          <div className="w-4 h-4 rounded-full bg-gray-200 animate-pulse" />
+                          <div className="w-4 h-4 rounded-full bg-gray-200 animate-pulse" />
                         </div>
                       </td>
 
-                      <td className={`py-3 px-3 text-center text-sm sm:text-base font-extrabold font-display ${
-                        isNFC ? 'text-[#008751]' : 'text-gray-900'
-                      }`}>
-                        {item.points}
+                      <td className="py-3 px-3 text-center">
+                        <div className="h-4 w-7 mx-auto bg-gray-200 rounded animate-pulse" />
                       </td>
                     </tr>
                   );
@@ -181,6 +264,7 @@ export default function ClassementPage() {
         </div>
       </section>
 
+      {/* Stats Highlights */}
       <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-6 shadow-sm flex items-center gap-3">
@@ -189,7 +273,7 @@ export default function ClassementPage() {
             </div>
             <div>
               <h4 className="font-display font-bold text-gray-900 text-xs sm:text-sm">MEILLEURE ATTAQUE</h4>
-              <p className="text-[11px] text-gray-500 mt-0.5">24 buts inscrits en 12 rencontres régionales.</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">{nfcData.goalsFor} buts inscrits en {nfcData.played} rencontres régionales.</p>
             </div>
           </div>
 
@@ -209,12 +293,11 @@ export default function ClassementPage() {
             </div>
             <div>
               <h4 className="font-display font-bold text-gray-900 text-xs sm:text-sm">PLAYOFFS D'ACCESSION</h4>
-              <p className="text-[11px] text-gray-500 mt-0.5">Les 2 premiers se qualifient pour les barrages.</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Les 2 premiers se qualifient pour les barrages d'accession.</p>
             </div>
           </div>
         </div>
       </section>
-
     </div>
   );
 }
