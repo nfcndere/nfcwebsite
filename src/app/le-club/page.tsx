@@ -20,6 +20,16 @@ const HOMMES_FORTS = [
   { badge: 'SECRÉTARIAT',     name: 'KOUETE NJIPAP Hilaire',  role: 'Secrétaire Général',     photo: null, highlight: false },
 ];
 
+// ─── Légendes imposées sur la scène internationale ───────────────────────────
+// Le nom de chaque joueur correspond au nom du fichier image
+const LEGENDS_DIR = '/ILS SE SONT IMPOSER SUR LA SCENNE INTERNATIONNALE/';
+const INTERNATIONAL_LEGENDS = [
+  { name: 'Edgar Salli',               file: 'Edgar salli.jpg' },
+  { name: 'Mboa Owondo Mickel-Ange',   file: 'MBOA OWONDO MICKEL-ANGE.jpg' },
+  { name: 'Man Ykre Dangmo',           file: 'Man ykre Dangmo.jpg' },
+  { name: 'Jérome Ngom Mbikeli',       file: 'jérome ngom mbikeli.jpg' },
+];
+
 // ─── Trophy icon helper ────────────────────────────────────────────────────────
 function getTrophyIcon(type: string) {
   if (type === 'COUPE') return Award;
@@ -192,6 +202,30 @@ export default function LeClubPage() {
           <div className="space-y-3">
             {youthTrophies.map((t) => (
               <TrophyRow key={t.id} trophee={t} />
+            ))}
+          </div>
+        </section>
+
+        {/* ── LÉGENDES INTERNATIONALES ───────────────────────────────── */}
+        <section className="space-y-6">
+          <div>
+            <p className="text-[10px] uppercase font-bold tracking-widest text-[#008751] mb-1">Fierté du club</p>
+            <h2 className="font-display text-xl sm:text-2xl font-extrabold text-gray-900 uppercase">Ils se sont imposés sur la scène internationale</h2>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+            {INTERNATIONAL_LEGENDS.map((p) => (
+              <div key={p.file} className="bg-white rounded-2xl border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1">
+                <div className="aspect-[3/4] bg-gray-100">
+                  <img
+                    src={encodeURI(LEGENDS_DIR + p.file)}
+                    alt={p.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="p-3 sm:p-4 text-center">
+                  <h4 className="font-display text-xs sm:text-sm font-bold text-gray-900 uppercase leading-tight">{p.name}</h4>
+                </div>
+              </div>
             ))}
           </div>
         </section>
