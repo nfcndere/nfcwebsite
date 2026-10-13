@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
       'henry@gmail.com': { pass: 'abc123', id: 'user-henry-1', name: 'Henry Admin', role: 'ADMIN' },
       'admin@nfc.local': { pass: 'admin123', id: 'admin-id-1', name: 'Admin NFC', role: 'ADMIN' },
       'admin@nfc.cm': { pass: 'admin123', id: 'admin-id-1', name: 'Admin NFC', role: 'ADMIN' },
+      'admin@ngaounderefc.cm': { pass: 'admin123', id: 'admin-id-1', name: 'Bekono Nkoa (Admin)', role: 'ADMIN' },
     };
 
     let isValid = false;
