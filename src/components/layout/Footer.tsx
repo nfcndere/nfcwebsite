@@ -7,48 +7,51 @@ import { ArrowUpRight, CheckCircle2, Facebook, Mail } from 'lucide-react';
 
 export default function Footer() {
   const [newsletterEmail, setNewsletterEmail] = useState('');
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [newsletterState, setNewsletterState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [newsletterMessage, setNewsletterMessage] = useState('');
 
-  const handleNewsletterSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleNewsletterSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     if (!newsletterEmail.trim()) return;
-
-    setIsSubscribed(true);
-    setNewsletterEmail('');
-
-    window.setTimeout(() => {
-      setIsSubscribed(false);
-    }, 3000);
+    setNewsletterState('loading');
+    setNewsletterMessage('');
+    try {
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newsletterEmail }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || result.error || 'Inscription impossible.');
+      setNewsletterState('success');
+      setNewsletterMessage(result.message || 'Inscription enregistrée.');
+      setNewsletterEmail('');
+    } catch (error) {
+      setNewsletterState('error');
+      setNewsletterMessage(error instanceof Error ? error.message : 'Impossible de contacter le service newsletter.');
+    }
   };
 
   const footerLinks = {
     club: [
       { label: 'Présentation', href: '/le-club' },
       { label: 'Effectif', href: '/effectif' },
-      { label: 'Staff', href: '/membre' },
       { label: 'Académie', href: '/academie' },
-      { label: 'Le Stade', href: '/le-club' },
+      { label: 'Histoire du club', href: '/le-club' },
     ],
     competitions: [
       { label: 'Calendrier', href: '/calendrier' },
-      { label: 'Résultats', href: '/calendrier' },
       { label: 'Classement', href: '/classement' },
-      { label: 'Statistiques', href: '/classement' },
-      { label: 'Ligue Régionale Adamaoua', href: '/calendrier' },
     ],
     media: [
       { label: 'Actualités', href: '/actualites' },
       { label: 'Galerie photos', href: '/galerie' },
-      { label: 'Vidéos', href: '/actualites' },
-      { label: 'NFC TV', href: '/actualites' },
+      { label: 'Photos & vidéos', href: '/galerie' },
       { label: 'Newsletter', href: '#newsletter' },
     ],
     support: [
-      { label: 'Contact', href: '/membre' },
       { label: 'Billetterie', href: '/calendrier' },
-      { label: 'FAQ', href: '/membre' },
-      { label: 'Devenir partenaire', href: '/le-club' },
+      { label: 'Devenir partenaire', href: '/partenaires' },
       { label: 'Espace supporter', href: '/membre' },
     ],
   };
@@ -112,9 +115,10 @@ export default function Footer() {
 
               <button
                 type="submit"
+                disabled={newsletterState === 'loading'}
                 className="whitespace-nowrap rounded-lg bg-[color:var(--nfc-yellow)] px-6 py-3 text-xs font-display font-extrabold uppercase tracking-[0.18em] text-[color:var(--nfc-dark)] transition-all duration-200 hover:scale-[1.02] hover:bg-[color:var(--nfc-yellow-hover)]"
               >
-                S'abonner
+                {newsletterState === 'loading' ? 'Envoi…' : "S'abonner"}
               </button>
             </form>
 
@@ -125,21 +129,21 @@ export default function Footer() {
               </label>
             </div>
 
-            {isSubscribed && (
-              <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-[color:var(--nfc-yellow)]/30 bg-[color:var(--nfc-yellow)]/10 px-3 py-2 text-[11px] font-medium text-[color:var(--nfc-yellow)]">
-                <CheckCircle2 className="h-4 w-4" />
-                Inscription réussie à la newsletter.
+            {newsletterMessage && (
+              <div role={newsletterState === 'error' ? 'alert' : 'status'} aria-live="polite" className="mt-4 inline-flex items-center gap-2 rounded-md border border-[color:var(--nfc-yellow)]/30 bg-[color:var(--nfc-yellow)]/10 px-3 py-2 text-[11px] font-medium text-[color:var(--nfc-yellow)]">
+                {newsletterState !== 'error' && <CheckCircle2 className="h-4 w-4" />}
+                {newsletterMessage}
               </div>
             )}
           </div>
 
-          <div className="lg:col-span-3">
+          {process.env.NEXT_PUBLIC_FACEBOOK_URL && <div className="lg:col-span-3">
             <div className="text-[11px] font-display font-bold uppercase tracking-[0.25em] text-[color:var(--nfc-yellow)]">
               Suivez-nous
             </div>
 
             <a
-              href="https://facebook.com"
+              href={process.env.NEXT_PUBLIC_FACEBOOK_URL}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Suivez le NFC sur Facebook"
@@ -151,7 +155,7 @@ export default function Footer() {
             </a>
 
             {/* TODO: Ajouter d'autres réseaux plus tard (Instagram, X, YouTube, TikTok) */}
-          </div>
+          </div>}
         </div>
 
         {/* Zone 2: Middle link columns */}
@@ -221,24 +225,12 @@ export default function Footer() {
         <div className="flex flex-col gap-4 border-t border-white/15 pt-8 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-[11px] text-[color:var(--nfc-green-light)]">
             <Link href="/mentions-legales" className="transition-colors duration-200 hover:text-[color:var(--nfc-yellow)]">
-              Cookies
-            </Link>
-            <Link href="/mentions-legales" className="transition-colors duration-200 hover:text-[color:var(--nfc-yellow)]">
-              Politique de confidentialité
-            </Link>
-            <Link href="/mentions-legales" className="transition-colors duration-200 hover:text-[color:var(--nfc-yellow)]">
               Mentions légales
-            </Link>
-            <Link href="/mentions-legales" className="transition-colors duration-200 hover:text-[color:var(--nfc-yellow)]">
-              CGU
-            </Link>
-            <Link href="/mentions-legales" className="transition-colors duration-200 hover:text-[color:var(--nfc-yellow)]">
-              Accessibilité
             </Link>
           </div>
 
           <div className="text-center text-[11px] text-[color:var(--nfc-green-light)]/70 md:text-right">
-            <div>© 2026 NGAOUNDÉRÉ FOOTBALL CLUB — Tous droits réservés.</div>
+            <div>© {new Date().getFullYear()} NGAOUNDÉRÉ FOOTBALL CLUB.</div>
             <div className="mt-1">Site conçu et développé avec ❤️ à Ngaoundéré</div>
           </div>
         </div>

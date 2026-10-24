@@ -1,80 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { signAccessToken, signRefreshToken } from '@/lib/server/auth';
+import { z } from 'zod';
+import { apiError } from '@/lib/api-response';
+
+const loginSchema = z.object({
+  email: z.string().email().transform((email) => email.toLowerCase().trim()),
+  password: z.string().min(1),
+});
 
 // ===================================
 // POST /api/auth/login — Connexion Admin (Mobile & Web)
 // ===================================
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const email = (body.email || '').toLowerCase().trim();
-    const password = body.password || '';
-
-    if (!email || !password) {
-      return NextResponse.json(
-        { success: false, message: 'Email et mot de passe obligatoires', error: 'Champs manquants' },
-        { status: 400 }
-      );
+    const parsed = loginSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return apiError('Email et mot de passe valides obligatoires.', 400);
+    }
+    const { email, password } = parsed.data;
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+      return apiError('Email ou mot de passe incorrect.', 401);
     }
 
-    let user: any = null;
-
-    try {
-      user = await prisma.user.findUnique({
-        where: { email },
-      });
-    } catch (dbError) {
-      console.error('Database connection error in login, checking fallback users...', dbError);
-    }
-
-    // Comptes prédéfinis / Fallback de secours
-    const FALLBACK_USERS: Record<string, { pass: string; id: string; name: string; role: string }> = {
-      'henry@gmail.com': { pass: 'abc123', id: 'user-henry-1', name: 'Henry Admin', role: 'ADMIN' },
-      'admin@nfc.local': { pass: 'admin123', id: 'admin-id-1', name: 'Admin NFC', role: 'ADMIN' },
-      'admin@nfc.cm': { pass: 'admin123', id: 'admin-id-1', name: 'Admin NFC', role: 'ADMIN' },
-      'admin@ngaounderefc.cm': { pass: 'admin123', id: 'admin-id-1', name: 'Bekono Nkoa (Admin)', role: 'ADMIN' },
-    };
-
-    let isValid = false;
-
-    if (user) {
-      isValid = await bcrypt.compare(password, user.passwordHash);
-    } else if (FALLBACK_USERS[email]) {
-      const fb = FALLBACK_USERS[email];
-      if (password === fb.pass) {
-        isValid = true;
-        user = {
-          id: fb.id,
-          name: fb.name,
-          email,
-          role: fb.role,
-        };
-      }
-    }
-
-    if (!isValid || !user) {
-      return NextResponse.json(
-        { success: false, message: 'Email ou mot de passe incorrect.', error: 'Identifiants invalides' },
-        { status: 401 }
-      );
-    }
-
-    const jwtSecret = process.env.JWT_SECRET || 'nfc-jwt-secret-2026-key';
-    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'nfc-jwt-refresh-secret-2026-key';
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role, name: user.name },
-      jwtSecret,
-      { expiresIn: '30d' }
-    );
-
-    const refreshToken = jwt.sign(
-      { id: user.id, type: 'refresh' },
-      jwtRefreshSecret,
-      { expiresIn: '90d' }
-    );
+    const token = signAccessToken(user);
+    const refreshToken = signRefreshToken(user);
 
     return NextResponse.json({
       success: true,
@@ -89,9 +41,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, message: 'Erreur serveur lors de la connexion', error: error.message },
-      { status: 500 }
-    );
+    console.error('Login failed:', error);
+    return apiError('Erreur serveur lors de la connexion.');
   }
 }

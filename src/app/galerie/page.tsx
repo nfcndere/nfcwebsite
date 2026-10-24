@@ -1,45 +1,30 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { SectionTag } from '@/components/ui/SectionTag';
-import { GALLERY_DATA } from '@/lib/mock-data';
 import { MediaItem } from '@/types';
 import { Image as ImageIcon, Video, Maximize2, CloudUpload, X, Play } from 'lucide-react';
 import Image from 'next/image';
+import { useApiResource } from '@/lib/use-api-resource';
+import { DataState } from '@/components/ui/DataState';
+import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
 
 export default function GaleriePage() {
   const [filterAlbum, setFilterAlbum] = useState<string>('TOUS');
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
-  const [mediaList, setMediaList] = useState<any[]>(GALLERY_DATA);
-
-  const albums = ['TOUS', 'Saison 2025-2026', 'Entraînements', 'Académie', 'Ferveur Supporters'];
-
-  useEffect(() => {
-    async function fetchMedia() {
-      try {
-        const res = await fetch('/api/galerie');
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
-            const formatted = data.map((item: any) => ({
-              id: item.id,
-              url: item.url,
-              type: item.mediaType || 'IMAGE',
-              title: item.title || 'Média NFC',
-              album: item.album || 'Galerie Officielle',
-              playerName: item.player ? `${item.player.firstName} ${item.player.lastName}` : null,
-              createdAt: new Date(item.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }),
-            }));
-            setMediaList(formatted);
-          }
-        }
-      } catch (error) {
-        console.warn('Utilisation du fallback local pour la galerie');
-      }
-    }
-    fetchMedia();
-  }, []);
+  const resource = useApiResource<any[]>('/api/galerie', { staleAfterMs: DATA_FRESHNESS_MS.media });
+  const mediaList: MediaItem[] = (resource.data ?? []).map((item) => ({
+    id: item.id,
+    url: item.url,
+    type: item.mediaType ?? 'IMAGE',
+    title: item.title ?? '',
+    album: item.album ?? '',
+    playerName: item.player ? `${item.player.firstName} ${item.player.lastName}` : undefined,
+    playerId: item.playerId ?? undefined,
+    createdAt: item.createdAt,
+  }));
+  const albums = ['TOUS', ...Array.from(new Set(mediaList.map((media) => media.album).filter(Boolean)))];
 
   const filteredMedia = mediaList.filter((item) => {
     if (filterAlbum === 'TOUS') return true;
@@ -77,6 +62,7 @@ export default function GaleriePage() {
           ))}
         </div>
 
+        <DataState status={resource.status} error={resource.error} onRetry={resource.retry} updatedAt={resource.updatedAt} emptyMessage="Aucun média disponible pour le moment." skeleton={<div className="h-64 animate-pulse rounded-xl bg-white" />}>
         <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 sm:gap-6">
           {filteredMedia.map((item) => (
             <div
@@ -98,7 +84,6 @@ export default function GaleriePage() {
                     {item.album}
                   </span>
                 </div>
-
                 {item.playerName && (
                   <div className="absolute top-2.5 right-2.5">
                     <span className="badge-category badge-green text-[8px]">👤 {item.playerName}</span>
@@ -127,6 +112,7 @@ export default function GaleriePage() {
             </div>
           ))}
         </div>
+        </DataState>
 
         <div className="bg-white border border-gray-100 p-4 sm:p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
           <div className="flex items-center gap-3">
@@ -138,7 +124,7 @@ export default function GaleriePage() {
               <p className="text-[11px] text-gray-500 mt-0.5">Images et vidéos optimisées et délivrées à haute vitesse via CDN.</p>
             </div>
           </div>
-          <span className="badge-category badge-outline text-[9px] shrink-0">Cloudinary CDN · Actif</span>
+          <span className="badge-category badge-outline text-[9px] shrink-0">Cloudinary CDN</span>
         </div>
 
       </div>

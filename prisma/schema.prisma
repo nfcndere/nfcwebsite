@@ -33,6 +33,46 @@ model User {
   uploadedMedia Media[]
 }
 
+model Season {
+  id        String     @id @default(uuid())
+  label     String     @unique
+  startsAt  DateTime
+  endsAt    DateTime
+  isCurrent Boolean    @default(false)
+  standings Standing[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Team {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  logoUrl   String?
+  standings Standing[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Standing {
+  id            String   @id @default(uuid())
+  seasonId      String
+  teamId        String
+  played        Int      @default(0)
+  won           Int      @default(0)
+  drawn         Int      @default(0)
+  lost          Int      @default(0)
+  goalsFor      Int      @default(0)
+  goalsAgainst  Int      @default(0)
+  points        Int      @default(0)
+  form          String?
+  season        Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  team          Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  updatedAt     DateTime @updatedAt
+
+  @@unique([seasonId, teamId])
+  @@index([seasonId, points])
+}
+
 // ===================================
 // Média (Image / Vidéo) avec association joueur optionnelle
 // ===================================

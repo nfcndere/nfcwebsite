@@ -3,11 +3,15 @@ import prisma from '@/lib/prisma';
 import cloudinary from '@/lib/server/cloudinary';
 import fs from 'fs';
 import path from 'path';
+import { requireEditor } from '@/lib/server/auth';
+import { apiError } from '@/lib/api-response';
 
 // ===================================
 // POST /api/uploads — Téléversement de médias (Images / Vidéos)
 // ===================================
 export async function POST(request: NextRequest) {
+  const denied = await requireEditor(request);
+  if (denied) return denied;
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -17,7 +21,10 @@ export async function POST(request: NextRequest) {
     const playerId = (formData.get('playerId') as string) || null;
 
     if (!file) {
-      return NextResponse.json({ success: false, error: 'Aucun fichier fourni' }, { status: 400 });
+      return apiError('Aucun fichier fourni.', 400);
+    }
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+      return apiError('Seules les images et vidéos sont acceptées.', 400);
     }
 
     const bytes = await file.arrayBuffer();
@@ -59,6 +66,9 @@ export async function POST(request: NextRequest) {
 
     // 2. Fallback Stockage Local dans public/uploads si Cloudinary pas actif ou a échoué
     if (!mediaUrl) {
+      if (process.env.NODE_ENV === 'production') {
+        return apiError('Cloudinary est indisponible. Le stockage local temporaire est désactivé en production.', 503);
+      }
       const uploadDir = path.join(process.cwd(), 'public', 'uploads');
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
@@ -97,9 +107,6 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   } catch (error: any) {
     console.error('Erreur téléversement média:', error);
-    return NextResponse.json(
-      { success: false, error: error.message || 'Erreur lors du téléversement du média' },
-      { status: 500 }
-    );
+    return apiError('Erreur lors du téléversement du média.');
   }
 }

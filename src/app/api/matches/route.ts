@@ -1,5 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { z } from 'zod';
+import { apiError, resourceResponse, latestDate } from '@/lib/api-response';
+import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
+import { requireEditor } from '@/lib/server/auth';
+
+const matchSchema = z.object({
+  homeTeam: z.string().trim().min(1),
+  awayTeam: z.string().trim().min(1),
+  date: z.string().datetime({ offset: true }),
+  stadium: z.string().trim().optional(),
+  competition: z.string().trim().optional(),
+  status: z.enum(['PROGRAMME', 'EN_COURS', 'TERMINE', 'REPORTE', 'ANNULE']).optional(),
+  summary: z.string().optional(),
+  homeScore: z.number().int().min(0).nullable().optional(),
+  awayScore: z.number().int().min(0).nullable().optional(),
+});
 
 // ===================================
 // GET /api/matches — Récupérer tous les matchs
@@ -16,12 +32,11 @@ export async function GET(request: NextRequest) {
       orderBy: { date: 'asc' },
     });
 
-    return NextResponse.json(matches);
+    const activeLive = matches.some((match) => match.status === 'EN_COURS');
+    return resourceResponse(matches, latestDate(matches, (match) => match.updatedAt), activeLive ? DATA_FRESHNESS_MS.liveMatch : DATA_FRESHNESS_MS.matches);
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: 'Erreur lors de la récupération des matchs' },
-      { status: 500 }
-    );
+    console.error('Failed to retrieve matches:', error);
+    return apiError('Impossible de récupérer les matchs.');
   }
 }
 
@@ -29,8 +44,12 @@ export async function GET(request: NextRequest) {
 // POST /api/matches — Créer un match (admin)
 // ===================================
 export async function POST(request: NextRequest) {
+  const denied = await requireEditor(request);
+  if (denied) return denied;
   try {
-    const body = await request.json();
+    const parsed = matchSchema.safeParse(await request.json());
+    if (!parsed.success) return apiError('Données de match invalides.', 400);
+    const body = parsed.data;
     const match = await prisma.match.create({
       data: {
         homeTeam: body.homeTeam,
@@ -44,8 +63,9 @@ export async function POST(request: NextRequest) {
         awayScore: body.awayScore ?? null,
       },
     });
-    return NextResponse.json(match, { status: 201 });
+    return NextResponse.json({ status: 'ok', data: match, updatedAt: match.updatedAt }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: 'Erreur lors de la création du match' }, { status: 500 });
+    console.error('Failed to create match:', error);
+    return apiError('Impossible de créer le match.');
   }
 }

@@ -1,5 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { z } from 'zod';
+import { apiError, resourceResponse, latestDate } from '@/lib/api-response';
+import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
+import { requireEditor } from '@/lib/server/auth';
+
+const articleSchema = z.object({
+  slug: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+  summary: z.string().nullable().optional(),
+  content: z.string().min(1),
+  category: z.string().nullable().optional(),
+  videoUrl: z.string().url().nullable().optional(),
+  coverId: z.string().nullable().optional(),
+  authorId: z.string().nullable().optional(),
+  published: z.boolean().optional(),
+});
 
 // ===================================
 // GET /api/articles — Récupérer les articles publiés
@@ -9,7 +25,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const slug = searchParams.get('slug');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limitParam = Number(searchParams.get('limit') || 20);
+    const limit = Number.isInteger(limitParam) ? Math.min(Math.max(limitParam, 1), 100) : 20;
 
     const where: any = { published: true };
     if (category && category !== 'TOUS') where.category = category;
@@ -22,12 +39,10 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
 
-    return NextResponse.json(articles);
+    return resourceResponse(articles, latestDate(articles, (article) => article.publishedAt ?? article.updatedAt), DATA_FRESHNESS_MS.articles);
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: 'Erreur lors de la récupération des articles' },
-      { status: 500 }
-    );
+    console.error('Failed to retrieve articles:', error);
+    return apiError('Impossible de récupérer les articles.');
   }
 }
 
@@ -35,8 +50,12 @@ export async function GET(request: NextRequest) {
 // POST /api/articles — Créer un article (admin)
 // ===================================
 export async function POST(request: NextRequest) {
+  const denied = await requireEditor(request);
+  if (denied) return denied;
   try {
-    const body = await request.json();
+    const parsed = articleSchema.safeParse(await request.json());
+    if (!parsed.success) return apiError('Données d’article invalides.', 400);
+    const body = parsed.data;
     const article = await prisma.article.create({
       data: {
         slug: body.slug,
@@ -51,8 +70,9 @@ export async function POST(request: NextRequest) {
         publishedAt: body.published ? new Date() : null,
       },
     });
-    return NextResponse.json(article, { status: 201 });
+    return NextResponse.json({ status: 'ok', data: article, updatedAt: article.updatedAt }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: 'Erreur lors de la création de l\'article' }, { status: 500 });
+    console.error('Failed to create article:', error);
+    return apiError('Impossible de créer l’article.');
   }
 }

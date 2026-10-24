@@ -1,57 +1,26 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { PageHeader } from '@/components/ui/PageHeader';
-import VideoPlayer from '@/components/ui/VideoPlayer';
-import { NEWS_DATA } from '@/lib/mock-data';
 import { Search, Play } from 'lucide-react';
-
-const NFC_TV_VIDEO = {
-  videoUrl: 'https://res.cloudinary.com/u9588m3i/video/upload/v1790743140/video5895481472965419044.mp4',
-  thumbnailUrl: 'https://res.cloudinary.com/u9588m3i/image/upload/v1790743348/galerie_baneer_2.jpg',
-  title: 'ENTRAINEMENT : La prise de temperature pour la nouvelle saison',
-  badge: 'GRAND FORMAT',
-  context: "Immersion session d'entraînement",
-};
+import VideoPlayer from '@/components/ui/VideoPlayer';
+import { useApiResource } from '@/lib/use-api-resource';
+import { DataState } from '@/components/ui/DataState';
+import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
 
 export default function ActualitesPage() {
   const [filterCategory, setFilterCategory] = useState<string>('TOUS');
   const [searchQuery, setSearchQuery] = useState('');
-  const [articles, setArticles] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchArticles() {
-      try {
-        const res = await fetch('/api/articles');
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            const formatted = data.map((item: any) => ({
-              id: item.id,
-              slug: item.slug || `article-${item.id}`,
-              title: item.title,
-              summary: item.summary || item.content?.substring(0, 150) + '...',
-              content: item.content,
-              category: item.category || 'ACTUALITE',
-              coverImage: item.cover?.url || '/actu baneer.jpg',
-              author: item.author?.name || 'Rédaction NFC',
-              videoUrl: item.videoUrl || null,
-              createdAt: item.createdAt || new Date().toISOString(),
-            }));
-            setArticles(formatted);
-          }
-        }
-      } catch (error) {
-        console.warn('Erreur lors de la récupération des articles');
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchArticles();
-  }, []);
+  const resource = useApiResource<any[]>('/api/articles', { staleAfterMs: DATA_FRESHNESS_MS.articles });
+  const articles = (resource.data ?? []).map((item) => ({
+    ...item,
+    summary: item.summary || (item.content ? `${item.content.substring(0, 150)}…` : ''),
+    coverImage: item.cover?.url ?? null,
+    author: item.author?.name ?? null,
+    createdAt: item.publishedAt ?? item.createdAt,
+  }));
 
   const categories = [
     { key: 'TOUS', label: 'TOUTES LES ACTUALITÉS' },
@@ -123,15 +92,11 @@ export default function ActualitesPage() {
                   thumbnailUrl={featuredArticle.coverImage}
                   title={featuredArticle.title}
                   badge={featuredArticle.category}
-                  context="Lancement officiel de la nouvelle saison 2026-2027"
+                  context={featuredArticle.summary}
                   className="h-full w-full"
                 />
               ) : (
-                <img
-                  src={featuredArticle.coverImage}
-                  alt={featuredArticle.title}
-                  className="w-full h-full object-cover"
-                />
+                featuredArticle.coverImage ? <img src={featuredArticle.coverImage} alt={featuredArticle.title} className="w-full h-full object-cover" /> : null
               )}
               {!featuredArticle.videoUrl && (
                 <div className="absolute top-3 left-3">
@@ -143,7 +108,7 @@ export default function ActualitesPage() {
             <div className="lg:col-span-5 p-4 sm:p-8 flex flex-col justify-between space-y-4">
               <div className="space-y-2 sm:space-y-3">
                 <span className="text-[10px] sm:text-[11px] text-gray-400 font-mono">
-                  {new Date(featuredArticle.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} • 5 MIN LECTURE
+                  {new Date(featuredArticle.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Douala' })}
                 </span>
                 <h3 className="font-display text-lg sm:text-2xl font-extrabold text-gray-900 uppercase leading-snug">
                   {featuredArticle.title}
@@ -180,15 +145,12 @@ export default function ActualitesPage() {
             <span className="text-xs text-gray-500 font-mono">{filteredNews.length} Dépêches</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+          <DataState status={resource.status} error={resource.error} onRetry={resource.retry} updatedAt={resource.updatedAt} emptyMessage="Aucune actualité pour le moment. Revenez bientôt." skeleton={<div className="h-48 animate-pulse rounded-xl bg-white" />}>
+          {filteredNews.length > 0 ? <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
             {filteredNews.map((news) => (
               <Link key={news.id} href={`/actualites/${news.slug}`} className="bg-white border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group flex flex-col rounded-xl">
                 <div className="relative h-44 sm:h-48 w-full bg-gray-100 overflow-hidden">
-                  <img
-                    src={news.coverImage}
-                    alt={news.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+                  {news.coverImage && <img src={news.coverImage} alt={news.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
                   <div className="absolute top-2.5 left-2.5">
                     <span className="badge-category badge-green text-[9px]">{news.category}</span>
                   </div>
@@ -200,7 +162,7 @@ export default function ActualitesPage() {
                 </div>
                 <div className="p-3.5 sm:p-5 flex flex-col flex-grow space-y-2 sm:space-y-3">
                   <span className="text-[10px] text-gray-400 font-mono">
-                    {new Date(news.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {news.createdAt && new Date(news.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Douala' })}
                   </span>
                   <h3 className="font-display text-sm sm:text-base font-bold text-gray-900 group-hover:text-[#008751] transition-colors line-clamp-2">
                     {news.title}
@@ -209,31 +171,14 @@ export default function ActualitesPage() {
                     {news.summary}
                   </p>
                   <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-[#008751] font-bold font-display">
-                    <span>Par {news.author}</span>
+                    {news.author && <span>Par {news.author}</span>}
                     <span className="group-hover:translate-x-1 transition-transform">LIRE &rarr;</span>
                   </div>
                 </div>
               </Link>
             ))}
-          </div>
-        </section>
-
-        {/* SECTION NFC TV */}
-        <section className="bg-[color:var(--nfc-dark)] text-white p-4 sm:p-8 rounded-2xl shadow-xl space-y-4 sm:space-y-6">
-          <div className="border-b border-gray-800 pb-3">
-            <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase font-display block">PORTAIL VIDÉO OFFICIEL</span>
-            <h2 className="font-display text-xl sm:text-3xl font-extrabold uppercase">IMMERSION VESTIAIRE & VIDÉOS</h2>
-          </div>
-
-          <div className="lg:col-span-7">
-            <VideoPlayer
-              videoUrl={NFC_TV_VIDEO.videoUrl}
-              thumbnailUrl={NFC_TV_VIDEO.thumbnailUrl}
-              title={NFC_TV_VIDEO.title}
-              badge={NFC_TV_VIDEO.badge}
-              context={NFC_TV_VIDEO.context}
-            />
-          </div>
+          </div> : <p role="status" className="py-6 text-center text-sm text-gray-600">Aucun article ne correspond à cette recherche.</p>}
+          </DataState>
         </section>
 
       </div>

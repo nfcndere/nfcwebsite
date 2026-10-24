@@ -21,10 +21,19 @@ if (fs.existsSync(envPath)) {
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seeding for Ngaoundéré FC...');
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('The demo seed cannot run in production.');
+  }
+  if (process.env.ENABLE_DEMO_SEED !== 'true') {
+    throw new Error('Set ENABLE_DEMO_SEED=true to explicitly load development demo data.');
+  }
+  if (!process.env.SEED_ADMIN_PASSWORD || process.env.SEED_ADMIN_PASSWORD.length < 16) {
+    throw new Error('Set SEED_ADMIN_PASSWORD to a unique password of at least 16 characters.');
+  }
+  console.log('🌱 Loading DEVELOPMENT-ONLY demo data for Ngaoundéré FC...');
 
-  // 1. Admin User
-  const passwordHash = await bcrypt.hash('admin123', 10);
+  // Development-only account and sample content; never use for real club data.
+  const passwordHash = await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD, 10);
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@nfc.local' },
     update: {},
