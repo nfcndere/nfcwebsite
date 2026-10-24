@@ -1,258 +1,156 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
+import prisma from '@/lib/prisma';
+import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
+import { apiError, resourceResponse } from '@/lib/api-response';
+import { requireEditor } from '@/lib/server/auth';
+import { isStandingConsistent } from '@/lib/match-state';
 
-// Données par défaut du classement régional (Adamaoua)
-let STANDINGS_STORE = [
-  {
-    id: 'st-nfc-1',
-    teamName: 'Ngaoundéré FC',
-    rank: 1,
-    position: 1,
-    points: 31,
-    played: 13,
-    won: 10,
-    drawn: 1,
-    lost: 2,
-    goalsFor: 34,
-    goalsAgainst: 12,
-    goalDifference: 22,
-    form: 'V-V-N-V-V',
-    logo: '/logo.png',
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'st-univ-2',
-    teamName: 'Ngaoundéré University FC',
-    rank: 2,
-    position: 2,
-    points: 29,
-    played: 13,
-    won: 9,
-    drawn: 2,
-    lost: 2,
-    goalsFor: 28,
-    goalsAgainst: 14,
-    goalDifference: 14,
-    form: 'V-V-V-N-V',
-    logo: null,
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'st-meig-3',
-    teamName: 'Renaissance de Meiganga',
-    rank: 3,
-    position: 3,
-    points: 24,
-    played: 13,
-    won: 7,
-    drawn: 3,
-    lost: 3,
-    goalsFor: 22,
-    goalsAgainst: 16,
-    goalDifference: 6,
-    form: 'D-V-V-N-D',
-    logo: null,
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'st-vina-4',
-    teamName: 'FC Vina de Ngaoundéré',
-    rank: 4,
-    position: 4,
-    points: 21,
-    played: 13,
-    won: 6,
-    drawn: 3,
-    lost: 4,
-    goalsFor: 19,
-    goalsAgainst: 18,
-    goalDifference: 1,
-    form: 'V-N-D-V-V',
-    logo: null,
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'st-bini-5',
-    teamName: 'AS Bini FC de Ngaoundéré',
-    rank: 5,
-    position: 5,
-    points: 17,
-    played: 13,
-    won: 4,
-    drawn: 5,
-    lost: 4,
-    goalsFor: 16,
-    goalsAgainst: 17,
-    goalDifference: -1,
-    form: 'D-N-V-D-N',
-    logo: null,
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'st-mayo-6',
-    teamName: 'Mayo-Banyo FC',
-    rank: 6,
-    position: 6,
-    points: 12,
-    played: 13,
-    won: 3,
-    drawn: 3,
-    lost: 7,
-    goalsFor: 14,
-    goalsAgainst: 23,
-    goalDifference: -9,
-    form: 'N-V-N-N-D',
-    logo: null,
-    updatedAt: new Date().toISOString(),
-  },
-];
+const writeSchema = z.object({
+  id: z.string().optional(),
+  teamName: z.string().trim().min(1).optional(),
+  logoUrl: z.string().url().nullable().optional(),
+  seasonId: z.string().optional(),
+  played: z.coerce.number().int().min(0),
+  won: z.coerce.number().int().min(0),
+  drawn: z.coerce.number().int().min(0),
+  lost: z.coerce.number().int().min(0),
+  goalsFor: z.coerce.number().int().min(0),
+  goalsAgainst: z.coerce.number().int().min(0),
+  form: z.string().max(20).nullable().optional(),
+});
 
-// ===================================
-// GET /api/standings — Récupérer le classement officiel complet
-// ===================================
-export async function GET(request: NextRequest) {
-  // Trier par points puis différence de buts
-  const sortedStandings = [...STANDINGS_STORE].sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    return b.goalDifference - a.goalDifference;
-  });
+export async function GET() {
+  try {
+    const season = await prisma.season.findFirst({
+      where: { isCurrent: true },
+      include: {
+        standings: { include: { team: true } },
+      },
+    });
+    if (!season) return resourceResponse({ season: null, data: [] }, null);
 
-  // Mettre à jour le rang calculé
-  sortedStandings.forEach((team, index) => {
-    team.rank = index + 1;
-    team.position = index + 1;
-  });
+    const standings = season.standings
+      .map((standing) => ({
+        ...standing,
+        teamName: standing.team.name,
+        logoUrl: standing.team.logoUrl,
+        goalDifference: standing.goalsFor - standing.goalsAgainst,
+      }))
+      .sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference)
+      .map((standing, index) => ({ ...standing, rank: index + 1, position: index + 1 }));
+    const updatedAt = standings.length
+      ? new Date(Math.max(...standings.map(({ updatedAt }) => updatedAt.getTime())))
+      : season.updatedAt;
 
-  const nfcStanding = sortedStandings.find((s) => s.teamName.includes('Ngaoundéré FC')) || sortedStandings[0];
-
-  return NextResponse.json({
-    success: true,
-    season: '2025-2026',
-    competition: "Ligue Régionale de l'Adamaoua",
-    nfc: nfcStanding,
-    totalTeams: sortedStandings.length,
-    data: sortedStandings,
-    standings: sortedStandings,
-  });
+    return resourceResponse(
+      { season: { id: season.id, label: season.label }, data: standings },
+      updatedAt,
+      DATA_FRESHNESS_MS.standings,
+      standings.some((standing) => !isStandingConsistent(standing)),
+      standings.length === 0,
+    );
+  } catch (error) {
+    console.error('Failed to retrieve standings:', error);
+    return apiError('Impossible de récupérer le classement.');
+  }
 }
 
-// ===================================
-// POST /api/standings — Ajouter ou mettre à jour une équipe au classement (Admin)
-// ===================================
 export async function POST(request: NextRequest) {
+  const denied = await requireEditor(request);
+  if (denied) return denied;
   try {
-    const body = await request.json();
-    const { id, teamName, points, played, won, drawn, lost, goalsFor, goalsAgainst, form } = body;
+    const parsed = writeSchema.safeParse(await request.json());
+    if (!parsed.success) return apiError('Données de classement invalides.', 400);
+    const body = parsed.data;
+    if (!body.teamName) return apiError('Le nom de l’équipe est obligatoire.', 400);
 
-    if (!teamName) {
-      return NextResponse.json({ success: false, error: 'Nom de l\'équipe obligatoire' }, { status: 400 });
+    const season = body.seasonId
+      ? await prisma.season.findUnique({ where: { id: body.seasonId } })
+      : await prisma.season.findFirst({ where: { isCurrent: true } });
+    if (!season) return apiError('Aucune saison correspondante n’est configurée.', 400);
+
+    const won = body.won;
+    const drawn = body.drawn;
+    const lost = body.lost;
+    const played = body.played;
+    if (played !== won + drawn + lost) {
+      return apiError('Joués doit être égal à victoires + nuls + défaites.', 400);
     }
 
-    const gf = Number(goalsFor || 0);
-    const ga = Number(goalsAgainst || 0);
-    const diff = gf - ga;
-
-    const existingIndex = id ? STANDINGS_STORE.findIndex((s) => s.id === id) : -1;
-
-    if (existingIndex >= 0) {
-      // Mise à jour de l'entrée existante
-      STANDINGS_STORE[existingIndex] = {
-        ...STANDINGS_STORE[existingIndex],
-        teamName,
-        points: Number(points || 0),
-        played: Number(played || 0),
-        won: Number(won || 0),
-        drawn: Number(drawn || 0),
-        lost: Number(lost || 0),
-        goalsFor: gf,
-        goalsAgainst: ga,
-        goalDifference: diff,
-        form: form || 'V-V-V',
-        updatedAt: new Date().toISOString(),
-      };
-    } else {
-      // Nouvelle équipe
-      const newEntry = {
-        id: `st-${Date.now()}`,
-        teamName,
-        rank: STANDINGS_STORE.length + 1,
-        position: STANDINGS_STORE.length + 1,
-        points: Number(points || 0),
-        played: Number(played || 0),
-        won: Number(won || 0),
-        drawn: Number(drawn || 0),
-        lost: Number(lost || 0),
-        goalsFor: gf,
-        goalsAgainst: ga,
-        goalDifference: diff,
-        form: form || 'V-V-V',
-        logo: null,
-        updatedAt: new Date().toISOString(),
-      };
-      STANDINGS_STORE.push(newEntry);
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Classement mis à jour avec succès',
-      data: STANDINGS_STORE,
+    const standingData = {
+      played, won, drawn, lost,
+      goalsFor: body.goalsFor,
+      goalsAgainst: body.goalsAgainst,
+      points: won * 3 + drawn,
+      form: body.form ?? null,
+    };
+    const standing = await prisma.$transaction(async (tx) => {
+      const team = await tx.team.upsert({
+        where: { name: body.teamName! },
+        update: { logoUrl: body.logoUrl },
+        create: { name: body.teamName!, logoUrl: body.logoUrl },
+      });
+      return tx.standing.upsert({
+        where: { seasonId_teamId: { seasonId: season.id, teamId: team.id } },
+        update: standingData,
+        create: { ...standingData, seasonId: season.id, teamId: team.id },
+      });
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: 'Erreur lors de la mise à jour du classement' }, { status: 500 });
+    return resourceResponse(standing, standing.updatedAt);
+  } catch (error) {
+    console.error('Failed to save standing:', error);
+    return apiError('Impossible d’enregistrer le classement.');
   }
 }
 
-// ===================================
-// PATCH /api/standings — Mettre à jour l'entrée NFC rapidement
-// ===================================
 export async function PATCH(request: NextRequest) {
+  const denied = await requireEditor(request);
+  if (denied) return denied;
   try {
-    const body = await request.json();
-    const nfcIndex = STANDINGS_STORE.findIndex((s) => s.teamName.includes('Ngaoundéré FC'));
-
-    if (nfcIndex >= 0) {
-      if (body.points !== undefined) STANDINGS_STORE[nfcIndex].points = Number(body.points);
-      if (body.played !== undefined) STANDINGS_STORE[nfcIndex].played = Number(body.played);
-      if (body.won !== undefined) STANDINGS_STORE[nfcIndex].won = Number(body.won);
-      if (body.drawn !== undefined) STANDINGS_STORE[nfcIndex].drawn = Number(body.drawn);
-      if (body.lost !== undefined) STANDINGS_STORE[nfcIndex].lost = Number(body.lost);
-      if (body.goalsFor !== undefined) STANDINGS_STORE[nfcIndex].goalsFor = Number(body.goalsFor);
-      if (body.goalsAgainst !== undefined) STANDINGS_STORE[nfcIndex].goalsAgainst = Number(body.goalsAgainst);
-      if (body.form !== undefined) STANDINGS_STORE[nfcIndex].form = body.form;
-      STANDINGS_STORE[nfcIndex].goalDifference = STANDINGS_STORE[nfcIndex].goalsFor - STANDINGS_STORE[nfcIndex].goalsAgainst;
-      STANDINGS_STORE[nfcIndex].updatedAt = new Date().toISOString();
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Position du NFC mise à jour',
-      data: STANDINGS_STORE[nfcIndex],
+    const parsed = writeSchema.safeParse(await request.json());
+    if (!parsed.success) return apiError('Données de classement invalides.', 400);
+    const body = parsed.data;
+    const season = await prisma.season.findFirst({ where: { isCurrent: true } });
+    if (!season) return apiError('Aucune saison courante configurée.', 404);
+    const standing = await prisma.standing.findFirst({
+      where: { seasonId: season.id, team: { name: { contains: 'Ngaoundéré FC' } } },
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: 'Erreur lors de la mise à jour' }, { status: 500 });
+    if (!standing) return apiError('Le classement du NFC n’est pas configuré.', 404);
+
+    const next = {
+      played: body.played ?? standing.played,
+      won: body.won ?? standing.won,
+      drawn: body.drawn ?? standing.drawn,
+      lost: body.lost ?? standing.lost,
+      goalsFor: body.goalsFor ?? standing.goalsFor,
+      goalsAgainst: body.goalsAgainst ?? standing.goalsAgainst,
+      form: body.form === undefined ? standing.form : body.form,
+    };
+    if (next.played !== next.won + next.drawn + next.lost) {
+      return apiError('Joués doit être égal à victoires + nuls + défaites.', 400);
+    }
+    const updated = await prisma.standing.update({
+      where: { id: standing.id },
+      data: { ...next, points: next.won * 3 + next.drawn },
+    });
+    return resourceResponse(updated, updated.updatedAt);
+  } catch (error) {
+    console.error('Failed to update NFC standing:', error);
+    return apiError('Impossible de mettre à jour le classement.');
   }
 }
 
-// ===================================
-// DELETE /api/standings — Supprimer une équipe du classement (Admin)
-// ===================================
 export async function DELETE(request: NextRequest) {
+  const denied = await requireEditor(request);
+  if (denied) return denied;
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-
-    if (!id) {
-      return NextResponse.json({ success: false, error: 'ID de l\'équipe requis' }, { status: 400 });
-    }
-
-    STANDINGS_STORE = STANDINGS_STORE.filter((s) => s.id !== id);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Équipe supprimée du classement',
-      data: STANDINGS_STORE,
-    });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: 'Erreur lors de la suppression' }, { status: 500 });
+    const id = new URL(request.url).searchParams.get('id');
+    if (!id) return apiError('ID de classement obligatoire.', 400);
+    await prisma.standing.delete({ where: { id } });
+    return resourceResponse({ id, deleted: true }, new Date());
+  } catch (error) {
+    console.error('Failed to delete standing:', error);
+    return apiError('Impossible de supprimer cette entrée du classement.');
   }
 }
-

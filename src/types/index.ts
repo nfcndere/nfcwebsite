@@ -8,23 +8,23 @@ export type PositionType = 'GARDIEN' | 'DEFENSEUR' | 'MILIEU' | 'ATTAQUANT';
 // ===================================
 export interface Player {
   id: string;
-  number: number;
+  number?: number | null;
   firstName: string;
   lastName: string;
-  position: PositionType;
-  nationality: string;
-  birthDate: string;
+  position?: PositionType | null;
+  nationality?: string | null;
+  birthDate?: string | null;
   height?: number;
   weight?: number;
   bio?: string;
-  photoUrl: string;
+  photoUrl?: string | null;
   isCaptain?: boolean;
-  matchesPlayed: number;
-  goalsScored: number;
-  assists: number;
-  yellowCards: number;
-  redCards: number;
-  joinedYear: number;
+  matchesPlayed?: number;
+  goalsScored?: number;
+  assists?: number;
+  yellowCards?: number;
+  redCards?: number;
+  joinedYear?: number;
 }
 
 // ===================================
@@ -51,9 +51,9 @@ export interface MatchItem {
   homeLogo?: string;
   awayLogo?: string;
   date: string;
-  stadium: string;
-  competition: string;
-  status: 'PROGRAMME' | 'EN_COURS' | 'TERMINE' | 'REPORTE';
+  stadium?: string | null;
+  competition?: string | null;
+  status: 'PROGRAMME' | 'EN_COURS' | 'TERMINE' | 'REPORTE' | 'ANNULE';
   matchDay?: number;
   summary?: string;
 }
@@ -62,6 +62,9 @@ export interface MatchItem {
 // Classement
 // ===================================
 export interface StandingItem {
+  id?: string;
+  teamId?: string;
+  rank?: number;
   position: number;
   teamName: string;
   logoUrl?: string;

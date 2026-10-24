@@ -3,29 +3,34 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Newspaper } from 'lucide-react';
-import { NEWS_DATA } from '@/lib/mock-data';
+import { useApiResource } from '@/lib/use-api-resource';
+import { DataState } from '@/components/ui/DataState';
+import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
 
 interface NewsGridProps {
   articles?: any[];
 }
 
 export default function NewsGrid({ articles }: NewsGridProps) {
-  const items = articles ?? NEWS_DATA ?? [];
+  const resource = useApiResource<any[]>('/api/articles', { staleAfterMs: DATA_FRESHNESS_MS.articles });
+  const items = articles ?? resource.data ?? [];
 
   if (!items || items.length === 0) {
     return (
-      <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-10 sm:py-12">
-        <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center space-y-3 shadow-sm">
-          <div className="w-12 h-12 rounded-full bg-[#008751]/10 text-[#008751] flex items-center justify-center mx-auto">
-            <Newspaper className="w-6 h-6" />
+      <section className="max-w-7xl px-3 py-10 sm:px-4 sm:py-12 md:px-6 lg:px-8">
+        <DataState
+          status={articles ? articles.length ? 'ok' : 'empty' : resource.status}
+          error={resource.error}
+          onRetry={resource.retry}
+          updatedAt={resource.updatedAt}
+          emptyMessage="Aucune actualité pour le moment. Revenez bientôt."
+          skeleton={<div className="h-64 animate-pulse rounded-xl bg-white" />}
+        >
+          <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+            <Newspaper className="mx-auto h-6 w-6 text-[#008751]" />
+            <p className="mt-3 text-sm text-gray-600">Aucune actualité pour le moment. Revenez bientôt.</p>
           </div>
-          <h3 className="font-display font-extrabold text-gray-900 text-lg uppercase">
-            Aucune dépêche pour le moment
-          </h3>
-          <p className="text-gray-500 text-xs max-w-md mx-auto">
-            Les dernières actualités et communiqués officiels du Ngaoundéré FC seront publiés ici prochainement.
-          </p>
-        </div>
+        </DataState>
       </section>
     );
   }
@@ -35,8 +40,7 @@ export default function NewsGrid({ articles }: NewsGridProps) {
   const secondaryArticleB = items[2];
   const sideArticles = items.slice(3);
 
-  const getCover = (art: any) =>
-    art?.coverImage || art?.cover?.url || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=1200&auto=format&fit=crop';
+  const getCover = (art: any) => art?.coverImage || art?.cover?.url || null;
 
   return (
     <section className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-10 sm:py-12 md:py-16">
@@ -49,13 +53,13 @@ export default function NewsGrid({ articles }: NewsGridProps) {
               className="group relative block h-[500px] overflow-hidden border-4 border-[color:var(--nfc-green-light)] bg-black shadow-lg transition-transform duration-300 hover:-translate-y-1"
             >
               <div className="absolute inset-0">
-                <Image
+                {getCover(featureArticle) && <Image
                   src={getCover(featureArticle)}
                   alt={featureArticle.title || 'Actualité NFC'}
                   fill
                   sizes="(max-width: 1024px) 100vw, 33vw"
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
+                />}
               </div>
 
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
@@ -100,13 +104,13 @@ export default function NewsGrid({ articles }: NewsGridProps) {
               className="group flex overflow-hidden border-l-4 border-[color:var(--nfc-green)] bg-white shadow-md transition-transform duration-300 hover:-translate-y-1"
             >
               <div className="relative w-2/5 min-h-[240px]">
-                <Image
+                {getCover(article) && <Image
                   src={getCover(article)}
                   alt={article.title || 'Actualité NFC'}
                   fill
                   sizes="(max-width: 1024px) 100vw, 20vw"
                   className="object-cover"
-                />
+                />}
                 <div className="absolute inset-0 bg-gradient-to-r from-[#0c130e]/70 via-[#0c130e]/30 to-transparent" />
                 <div className="absolute inset-0 flex items-center justify-center gap-3 text-white">
                   <span className="font-display text-lg font-extrabold">NFC</span>
@@ -145,13 +149,13 @@ export default function NewsGrid({ articles }: NewsGridProps) {
                   className="group block overflow-hidden border border-gray-200 bg-white shadow-sm transition-transform duration-300 hover:-translate-y-1"
                 >
                   <div className="relative h-28 w-full">
-                    <Image
+                    {getCover(item) && <Image
                       src={getCover(item)}
                       alt={item.title || 'Actualité NFC'}
                       fill
                       sizes="(max-width: 1024px) 100vw, 20vw"
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
+                    />}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                     <span className="absolute left-3 top-3 inline-block bg-[color:var(--nfc-green)] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[color:var(--nfc-white)]">
                       {item.category || 'CLUB'}

@@ -1,5 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
+import { z } from 'zod';
+import { apiError, resourceResponse } from '@/lib/api-response';
+import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
+import { requireEditor } from '@/lib/server/auth';
+
+const articlePatchSchema = z.object({
+  title: z.string().trim().min(1).optional(),
+  slug: z.string().trim().min(1).optional(),
+  summary: z.string().nullable().optional(),
+  content: z.string().min(1).optional(),
+  category: z.string().nullable().optional(),
+  videoUrl: z.string().url().nullable().optional(),
+  coverId: z.string().nullable().optional(),
+  published: z.boolean().optional(),
+});
 
 // ===================================
 // GET /api/articles/[id] — Récupérer un article par ID ou Slug
@@ -12,20 +27,19 @@ export async function GET(
     const article = await prisma.article.findFirst({
       where: {
         OR: [{ id: params.id }, { slug: params.id }],
+        published: true,
       },
       include: { cover: true, author: { select: { name: true } } },
     });
 
     if (!article) {
-      return NextResponse.json({ success: false, error: 'Article non trouvé' }, { status: 404 });
+      return apiError('Article non trouvé.', 404);
     }
 
-    return NextResponse.json({ success: true, data: article });
+    return resourceResponse(article, article.publishedAt ?? article.updatedAt, DATA_FRESHNESS_MS.articles);
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: 'Erreur lors de la récupération de l\'article' },
-      { status: 500 }
-    );
+    console.error('Failed to retrieve article:', error);
+    return apiError('Impossible de récupérer l’article.');
   }
 }
 
@@ -36,8 +50,12 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const denied = await requireEditor(request);
+  if (denied) return denied;
   try {
-    const body = await request.json();
+    const parsed = articlePatchSchema.safeParse(await request.json());
+    if (!parsed.success) return apiError('Données d’article invalides.', 400);
+    const body = parsed.data;
 
     const dataToUpdate: any = {};
     if (body.title !== undefined) dataToUpdate.title = body.title;
@@ -57,12 +75,10 @@ export async function PATCH(
       data: dataToUpdate,
     });
 
-    return NextResponse.json({ success: true, message: 'Article mis à jour', data: updated });
+    return resourceResponse(updated, updated.updatedAt);
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: 'Erreur lors de la modification de l\'article' },
-      { status: 500 }
-    );
+    console.error('Failed to update article:', error);
+    return apiError('Impossible de modifier l’article.');
   }
 }
 
@@ -73,16 +89,16 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const denied = await requireEditor(request);
+  if (denied) return denied;
   try {
     await prisma.article.delete({
       where: { id: params.id },
     });
 
-    return NextResponse.json({ success: true, message: 'Article supprimé avec succès' });
+    return resourceResponse({ id: params.id, deleted: true }, new Date());
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: 'Erreur lors de la suppression de l\'article' },
-      { status: 500 }
-    );
+    console.error('Failed to delete article:', error);
+    return apiError('Impossible de supprimer l’article.');
   }
 }

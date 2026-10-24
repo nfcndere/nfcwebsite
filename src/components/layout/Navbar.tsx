@@ -9,6 +9,7 @@ import {
   Home, Newspaper, Trophy, Image as ImageIcon, Shield,
   GraduationCap, Calendar, BarChart2, Ticket
 } from 'lucide-react';
+import { useClubOverview } from '@/components/providers/ClubOverviewProvider';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type NavItem = {
@@ -23,7 +24,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'ACCUEIL',    href: '/',            icon: Home },
   { label: 'ACTUALITÉS', href: '/actualites',  icon: Newspaper },
   {
-    label: 'COMPÉTITIONS', href: '/competitions', icon: Trophy,
+    label: 'COMPÉTITIONS', href: '/calendrier', icon: Trophy,
     children: [
       { label: 'Calendrier & Résultats', href: '/calendrier',  icon: Calendar },
       { label: 'Effectif',               href: '/effectif',    icon: User },
@@ -56,6 +57,7 @@ export const Navbar = () => {
   const [closing,      setClosing]      = useState(false);
 
   const pathname = usePathname();
+  const { data: clubData } = useClubOverview();
 
   // Scroll shadow
   useEffect(() => {
@@ -109,18 +111,18 @@ export const Navbar = () => {
     >
 
       {/* ── TOP BAR (desktop only) ──────────────────────────────── */}
-      <div className="hidden sm:block bg-[color:var(--nfc-dark)] text-white text-[10px] py-2 px-4 font-display">
+      {clubData?.nextMatch && <div className="hidden sm:block bg-[color:var(--nfc-dark)] text-white text-[10px] py-2 px-4 font-display">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <span className="bg-[color:var(--nfc-yellow)] text-[color:var(--nfc-dark)] font-extrabold px-2 py-0.5 text-[9px] uppercase shrink-0">
               PROCHAIN MATCH
             </span>
             <span className="text-gray-300 truncate hidden sm:block">
-              LIGUE RÉGIONALE — J14 :{' '}
-              <strong className="text-white">NFC vs NGAOUNDÉRÉ UNIV FC</strong>
+              {clubData.nextMatch.competition || 'PROCHAIN MATCH'} :{' '}
+              <strong className="text-white">{clubData.nextMatch.homeTeam} vs {clubData.nextMatch.awayTeam}</strong>
             </span>
             <span className="text-gray-400 hidden md:block font-mono shrink-0">
-              Dim. 04 Oct • 15h30
+              {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Douala' }).format(new Date(clubData.nextMatch.date))}
             </span>
           </div>
           <Link href="/calendrier" className="text-[color:var(--nfc-yellow)] font-bold hover:text-white transition-colors shrink-0 flex items-center gap-1.5 text-[9px] tracking-widest uppercase">
@@ -128,7 +130,7 @@ export const Navbar = () => {
             RÉSERVER →
           </Link>
         </div>
-      </div>
+      </div>}
 
       {/* ── MAIN NAV BAR ────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">

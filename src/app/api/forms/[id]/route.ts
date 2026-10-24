@@ -1,5 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
+import { z } from 'zod';
+import { requireEditor } from '@/lib/server/auth';
+import { apiError, resourceResponse } from '@/lib/api-response';
+
+const processedSchema = z.object({ processed: z.boolean().optional() });
 
 // ===================================
 // PATCH /api/forms/[id] — Marquer un formulaire comme traité (admin mobile)
@@ -8,15 +13,20 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const denied = await requireEditor(request);
+  if (denied) return denied;
   try {
-    const body = await request.json();
+    const parsed = processedSchema.safeParse(await request.json());
+    if (!parsed.success) return apiError('Valeur processed invalide.', 400);
+    const body = parsed.data;
     const updated = await prisma.formSubmission.update({
       where: { id: params.id },
       data: { processed: body.processed ?? true },
     });
-    return NextResponse.json({ success: true, data: updated });
+    return resourceResponse(updated, updated.createdAt);
   } catch (error) {
-    return NextResponse.json({ error: 'Erreur lors de la mise à jour' }, { status: 500 });
+    console.error('Failed to update form submission:', error);
+    return apiError('Impossible de mettre à jour le formulaire.');
   }
 }
 
@@ -27,16 +37,19 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const denied = await requireEditor(request);
+  if (denied) return denied;
   try {
     const form = await prisma.formSubmission.findUnique({
       where: { id: params.id },
     });
     if (!form) {
-      return NextResponse.json({ error: 'Formulaire non trouvé' }, { status: 404 });
+      return apiError('Formulaire non trouvé.', 404);
     }
-    return NextResponse.json({ success: true, data: form });
+    return resourceResponse(form, form.createdAt);
   } catch (error) {
-    return NextResponse.json({ error: 'Erreur lors de la récupération' }, { status: 500 });
+    console.error('Failed to retrieve form submission:', error);
+    return apiError('Impossible de récupérer le formulaire.');
   }
 }
 
@@ -47,12 +60,15 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const denied = await requireEditor(request);
+  if (denied) return denied;
   try {
     await prisma.formSubmission.delete({
       where: { id: params.id },
     });
-    return NextResponse.json({ success: true, message: 'Formulaire supprimé avec succès' });
+    return resourceResponse({ id: params.id, deleted: true }, new Date());
   } catch (error) {
-    return NextResponse.json({ error: 'Erreur lors de la suppression' }, { status: 500 });
+    console.error('Failed to delete form submission:', error);
+    return apiError('Impossible de supprimer le formulaire.');
   }
 }

@@ -4,43 +4,18 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { ACADEMY_STAFF_DATA } from '@/lib/mock-data';
 import {
-  GraduationCap, Award, BookOpen, CheckCircle, CheckCircle2,
-  Star, Home, Users, Dumbbell, Trophy, Heart, Clock,
-  ChevronRight, Send, User, Stethoscope
+  BookOpen, CheckCircle, Home, Users, Heart, Clock,
+  ChevronRight, Send, Trophy, GraduationCap,
 } from 'lucide-react';
-
-// ─── Staff Person Card ────────────────────────────────────────────────────────
-// Même principe que Le Club : icône uniform, carte centrée, avatar circulaire
-// Le médecin reçoit une icône Stethoscope, les autres reçoivent User
-function StaffPersonCard({ staff }: { staff: typeof ACADEMY_STAFF_DATA[0] }) {
-  const isMedecin = staff.badge === 'MÉDECIN';
-  const IconComp = isMedecin ? Stethoscope : User;
-
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col items-center text-center gap-4 hover:shadow-lg hover:-translate-y-1 transition-all duration-200">
-      {/* Avatar */}
-      <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-        <IconComp className="w-9 h-9 text-gray-400" />
-      </div>
-      {/* Badge */}
-      <span className="text-[9px] font-bold uppercase tracking-widest text-[#008751] bg-[#008751]/8 px-3 py-1 rounded-full">
-        {staff.badge}
-      </span>
-      {/* Name & Role */}
-      <div className="space-y-1">
-        <h4 className="font-display text-sm font-bold text-gray-900 leading-tight">{staff.name}</h4>
-        <p className="text-xs text-[#008751] font-semibold">{staff.role}</p>
-      </div>
-    </div>
-  );
-}
+import { useClubOverview } from '@/components/providers/ClubOverviewProvider';
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function AcademiePage() {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
+  const [formError, setFormError] = useState('');
+  const { data: overview } = useClubOverview();
   const [formData, setFormData] = useState({
     nomJoueur: '',
     prenomJoueur: '',
@@ -55,15 +30,20 @@ export default function AcademiePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormLoading(true);
+    setFormError('');
     try {
       const response = await fetch('/api/academie', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-      if (response.ok) setFormSubmitted(true);
-    } catch {
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.message || result.error || 'Impossible d’enregistrer la candidature.');
+      }
       setFormSubmitted(true);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Impossible de contacter le service.');
     } finally {
       setFormLoading(false);
     }
@@ -78,10 +58,10 @@ export default function AcademiePage() {
 
       {/* EN-TÊTE */}
       <PageHeader
-        tag="CENTRE DE FORMATION AGRÉÉ • ADAMAOUA"
+        tag="CENTRE DE FORMATION • ADAMAOUA"
         title="L'ACADÉMIE DU"
         titleHighlight="NGAOUNDÉRÉ FC"
-        description="Reconnue pour la qualité de sa formation sportive et éducative, l'Académie du NFC prépare les talents de demain avec un encadrement professionnel d'élite."
+        description="L'Académie du Ngaoundéré FC présente son parcours de formation et recueille les candidatures des jeunes joueurs."
         backgroundImageUrl="/cover img accdemie.jpg"
         
       >
@@ -93,35 +73,12 @@ export default function AcademiePage() {
 
       <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 pt-8 sm:pt-10 space-y-12 sm:space-y-16">
 
-        {/* ── CHIFFRES CLÉS ────────────────────────────────────────── */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-px bg-gray-200 rounded-2xl overflow-hidden shadow-sm">
-          {[
-            { value: '85+', label: 'Joueurs Professionnels', green: true  },
-            { value: '4',   label: 'Pôles U6 à U20',         green: false },
-            { value: '94%', label: 'Réussite Scolaire',       green: true  },
-            { value: '5★',  label: 'Agrément FECAFOOT',       green: false },
-          ].map((s) => (
-            <div key={s.label} className="bg-white py-7 px-4 text-center">
-              <span className={`font-display text-2xl sm:text-3xl font-extrabold block ${s.green ? 'text-[#008751]' : 'text-gray-900'}`}>{s.value}</span>
-              <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 mt-1 block">{s.label}</span>
-            </div>
-          ))}
-        </section>
-
-        {/* ── ENCADREMENT TECHNIQUE ────────────────────────────────── */}
-        <section className="space-y-8">
-          <div>
-            <p className="text-[10px] uppercase font-bold tracking-widest text-[#008751] mb-1">Saison 2026-2027</p>
-            <h2 className="font-display text-xl sm:text-2xl font-extrabold text-gray-900 uppercase">Encadrement Technique & Médical</h2>
-            <p className="text-xs text-gray-500 mt-1.5 max-w-2xl leading-relaxed">
-              Une équipe pluridisciplinaire dédiée au développement sportif, technique et à la santé des jeunes pensionnaires de l'Académie NFC.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            {ACADEMY_STAFF_DATA.map((staff) => (
-              <StaffPersonCard key={staff.id} staff={staff} />
-            ))}
-          </div>
+        <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#008751]">
+            {overview?.season?.label ? `Saison ${overview.season.label}` : 'Saison non communiquée'}
+          </p>
+          <h2 className="mt-1 font-display text-xl font-extrabold uppercase text-gray-900">Encadrement technique & médical</h2>
+          <p className="mt-2 text-sm text-gray-600">Les informations sur l’encadrement seront publiées lorsqu’elles auront été confirmées par le club.</p>
         </section>
 
         {/* ── L'INTERNAT ──────────────────────────────────────────── */}
@@ -193,11 +150,11 @@ export default function AcademiePage() {
                 <h2 className="font-display text-xl sm:text-2xl font-extrabold uppercase text-white">Football & Études : Les Deux à la Fois</h2>
               </div>
               <p className="text-sm text-gray-300 leading-relaxed">
-                Chez le Ngaoundéré FC, nous sommes fermement convaincus qu'un grand footballeur est d'abord une personne instruite. Nos partenariats avec les lycées de Ngaoundéré permettent à chaque pensionnaire de poursuivre un cursus scolaire complet.
+              Les modalités d’accompagnement scolaire sont à préciser par le club.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
-                  { icon: BookOpen,      title: 'Lycées Partenaires', desc: 'Conventions avec 3 établissements pour des horaires adaptés.' },
+                  { icon: BookOpen,      title: 'Parcours scolaire', desc: 'Informations sur l’organisation scolaire à confirmer par le club.' },
                   { icon: GraduationCap, title: 'Soutien Scolaire',   desc: 'Tutorat hebdomadaire et préparation aux examens nationaux.' },
                   { icon: Trophy,        title: "Bourse d'Excellence", desc: 'Prise en charge des frais scolaires pour les meilleurs élèves.' },
                   { icon: CheckCircle,   title: 'Suivi Individuel',   desc: 'Un référent scolaire attribué à chaque pensionnaire.' },
@@ -246,7 +203,7 @@ export default function AcademiePage() {
           <div className="bg-white border-t-4 border-[#008751] border-x border-b border-gray-100 p-6 sm:p-10 rounded-2xl shadow-sm space-y-6">
             <div className="text-center space-y-1.5">
               <p className="text-[10px] uppercase font-bold tracking-widest text-[#008751]">Candidature en Ligne</p>
-              <h2 className="font-display text-xl sm:text-2xl font-extrabold text-gray-900 uppercase">Inscriptions & Détections 2026-2027</h2>
+              <h2 className="font-display text-xl sm:text-2xl font-extrabold text-gray-900 uppercase">Inscriptions & détections {overview?.season?.label ?? ''}</h2>
               <p className="text-xs text-gray-500">Remplissez le formulaire. Notre service de détection vous contactera rapidement.</p>
             </div>
 
@@ -259,6 +216,8 @@ export default function AcademiePage() {
                 </p>
               </div>
             ) : (
+              <>
+              {formError && <p role="alert" aria-live="polite" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{formError}</p>}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
@@ -327,6 +286,7 @@ export default function AcademiePage() {
                   {formLoading ? 'ENVOI EN COURS...' : (<>SOUMETTRE MA CANDIDATURE <Send className="w-4 h-4" /></>)}
                 </button>
               </form>
+              </>
             )}
           </div>
         </section>

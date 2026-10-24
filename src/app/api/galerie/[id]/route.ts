@@ -1,6 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { destroyFromCloudinary } from '@/lib/server/cloudinary';
+import { z } from 'zod';
+import { apiError, resourceResponse } from '@/lib/api-response';
+import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
+import { requireEditor } from '@/lib/server/auth';
+
+const mediaPatchSchema = z.object({
+  title: z.string().nullable().optional(),
+  altText: z.string().nullable().optional(),
+  album: z.string().nullable().optional(),
+  mediaType: z.enum(['IMAGE', 'VIDEO']).nullable().optional(),
+  playerId: z.string().nullable().optional(),
+});
 
 // ===================================
 // GET /api/galerie/[id] — Récupérer un média spécifique
@@ -16,15 +28,13 @@ export async function GET(
     });
 
     if (!media) {
-      return NextResponse.json({ success: false, error: 'Média non trouvé' }, { status: 404 });
+      return apiError('Média non trouvé.', 404);
     }
 
-    return NextResponse.json({ success: true, data: media });
+    return resourceResponse(media, media.createdAt, DATA_FRESHNESS_MS.media);
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: 'Erreur lors de la récupération du média' },
-      { status: 500 }
-    );
+    console.error('Failed to retrieve gallery media:', error);
+    return apiError('Impossible de récupérer le média.');
   }
 }
 
@@ -35,8 +45,12 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const denied = await requireEditor(request);
+  if (denied) return denied;
   try {
-    const body = await request.json();
+    const parsed = mediaPatchSchema.safeParse(await request.json());
+    if (!parsed.success) return apiError('Données de média invalides.', 400);
+    const body = parsed.data;
 
     const dataToUpdate: any = {};
     if (body.title !== undefined) dataToUpdate.title = body.title;
@@ -50,12 +64,10 @@ export async function PATCH(
       data: dataToUpdate,
     });
 
-    return NextResponse.json({ success: true, message: 'Média mis à jour', data: updated });
+    return resourceResponse(updated, updated.createdAt);
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: 'Erreur lors de la modification du média' },
-      { status: 500 }
-    );
+    console.error('Failed to update gallery media:', error);
+    return apiError('Impossible de modifier le média.');
   }
 }
 
@@ -66,10 +78,12 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const denied = await requireEditor(request);
+  if (denied) return denied;
   try {
     const media = await prisma.media.findUnique({ where: { id: params.id } });
     if (!media) {
-      return NextResponse.json({ success: false, error: 'Média introuvable' }, { status: 404 });
+      return apiError('Média introuvable.', 404);
     }
 
     // Si hébergé sur Cloudinary, détruire l'asset distant
@@ -83,11 +97,9 @@ export async function DELETE(
 
     await prisma.media.delete({ where: { id: params.id } });
 
-    return NextResponse.json({ success: true, message: 'Média supprimé avec succès' });
+    return resourceResponse({ id: params.id, deleted: true }, new Date());
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: 'Erreur lors de la suppression du média' },
-      { status: 500 }
-    );
+    console.error('Failed to delete gallery media:', error);
+    return apiError('Impossible de supprimer le média.');
   }
 }

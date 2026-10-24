@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { NextApiRequest } from 'next';
 import { prisma } from '@/lib/prisma';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 type TokenPayload = {
   sub: string;
@@ -11,8 +13,21 @@ type TokenPayload = {
   exp?: number;
 };
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || JWT_SECRET;
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret && process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET must be configured in production.');
+  }
+  return secret || 'local-development-secret-only';
+}
+
+function getRefreshSecret() {
+  const secret = process.env.JWT_REFRESH_SECRET;
+  if (!secret && process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_REFRESH_SECRET must be configured in production.');
+  }
+  return secret || getJwtSecret();
+}
 
 export function signAccessToken(user: { id: string; email?: string | null; role?: string | null }) {
   return jwt.sign(
@@ -22,7 +37,7 @@ export function signAccessToken(user: { id: string; email?: string | null; role?
       role: user.role,
       type: 'access',
     },
-    JWT_SECRET,
+    getJwtSecret(),
     { expiresIn: '15m' }
   );
 }
@@ -35,7 +50,7 @@ export function signRefreshToken(user: { id: string; email?: string | null; role
       role: user.role,
       type: 'refresh',
     },
-    JWT_REFRESH_SECRET,
+    getRefreshSecret(),
     { expiresIn: '7d' }
   );
 }
@@ -60,10 +75,10 @@ export function extractBearerToken(req: {
 
 export async function getUserFromToken(token: string, type: 'access' | 'refresh' = 'access') {
   try {
-    const payload = jwt.verify(token, type === 'refresh' ? JWT_REFRESH_SECRET : JWT_SECRET) as TokenPayload;
+    const payload = jwt.verify(token, type === 'refresh' ? getRefreshSecret() : getJwtSecret()) as TokenPayload;
     if (!payload?.sub || payload.type !== type) return null;
 
-    const user = await (prisma as any).user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: payload.sub },
     });
 
@@ -78,6 +93,23 @@ export async function getUserFromRequest(req: NextApiRequest | { headers: Header
   if (!token) return null;
 
   return getUserFromToken(token, 'access');
+}
+
+export async function getAuthorizedUser(request: NextRequest, roles: string[] = ['ADMIN', 'EDITOR']) {
+  const user = await getUserFromRequest(request);
+  return hasRole(user, roles) ? user : null;
+}
+
+export async function requireEditor(request: NextRequest) {
+  try {
+    const user = await getAuthorizedUser(request);
+    return user
+      ? null
+      : NextResponse.json({ status: 'error', message: 'Accès réservé aux administrateurs et éditeurs.' }, { status: 401 });
+  } catch (error) {
+    console.error('Authentication configuration error:', error);
+    return NextResponse.json({ status: 'error', message: 'Configuration de sécurité indisponible.' }, { status: 500 });
+  }
 }
 
 export function sanitizeUser(user: any) {

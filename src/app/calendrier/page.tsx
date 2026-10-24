@@ -1,14 +1,17 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { SectionTag } from '@/components/ui/SectionTag';
-import { MATCHES_DATA } from '@/lib/mock-data';
 import { MatchItem } from '@/types';
 import { Calendar, MapPin, Shield, Ticket, X, ChevronRight, Clock, MessageCircle } from 'lucide-react';
+import { useApiResource } from '@/lib/use-api-resource';
+import { DataState } from '@/components/ui/DataState';
+import { getMatchState } from '@/lib/match-state';
+import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
 
-const WHATSAPP_BILLETTERIE = '691216160';
+const WHATSAPP_BILLETTERIE = process.env.NEXT_PUBLIC_WHATSAPP_BILLETTERIE;
 
 function MatchCard({
   match,
@@ -19,18 +22,19 @@ function MatchCard({
   onTicket: (m: MatchItem) => void;
   onResume: (m: MatchItem) => void;
 }) {
-  const isFinished = match.status === 'TERMINE';
+  const matchState = getMatchState(match, new Date());
+  const isFinished = matchState === 'FINISHED';
 
   const dateObj = new Date(match.date);
   const formattedDate = dateObj
-    .toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    .toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Douala' })
     .toUpperCase();
-  const formattedTime = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const formattedTime = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Douala' });
 
   // Extrait la compétition et la journée
-  const parts = match.competition.split('-');
-  const competitionTitle = parts[0]?.trim().toUpperCase() || "LIGUE RÉGIONALE DE L'ADAMAOUA";
-  const matchDayText = parts[1]?.trim().toUpperCase() || 'MATCH OFFICIEL';
+  const parts = (match.competition || '').split('-');
+  const competitionTitle = parts[0]?.trim().toUpperCase() || 'COMPÉTITION NON COMMUNIQUÉE';
+  const matchDayText = parts[1]?.trim().toUpperCase() || '';
 
   return (
     <div className="bg-white border-y-2 border-y-[color:var(--nfc-yellow)] border-x border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 rounded-xl overflow-hidden mb-4">
@@ -98,28 +102,28 @@ function MatchCard({
           {/* Sub Info (Stadium & Channel/Ligue) */}
           <div className="mt-2 text-center">
             <span className="text-[10px] font-display font-bold uppercase text-gray-400 tracking-wider">
-              {match.stadium} — <span className="underline cursor-pointer hover:text-[#008751]">FECAFOOT ADAMAOUA</span>
+              {match.stadium || 'Stade non communiqué'}
             </span>
           </div>
         </div>
 
         {/* Right Column: CTA Action */}
         <div className="flex items-center justify-center lg:justify-end shrink-0 lg:w-1/4 mt-2 lg:mt-0">
-          {!isFinished ? (
+          {matchState === 'UPCOMING' && WHATSAPP_BILLETTERIE ? (
             <button
               onClick={() => onTicket(match)}
               className="font-display font-extrabold text-xs text-[#008751] uppercase tracking-wider underline underline-offset-4 decoration-2 hover:text-[#005c37] transition-colors py-1 px-2"
             >
               ACHETER UNE PLACE
             </button>
-          ) : (
+          ) : isFinished && (match.homeScore !== null && match.homeScore !== undefined) && (match.awayScore !== null && match.awayScore !== undefined) ? (
             <button
               onClick={() => onResume(match)}
               className="font-display font-extrabold text-xs text-[#0c130e] uppercase tracking-wider underline underline-offset-4 decoration-2 hover:text-[#008751] transition-colors py-1 px-2"
             >
               RÉSUMÉ DU MATCH
             </button>
-          )}
+          ) : null}
         </div>
 
       </div>
@@ -129,7 +133,9 @@ function MatchCard({
 
 export default function CalendrierPage() {
   const [filterTab, setFilterTab] = useState<'TOUS' | 'A_VENIR' | 'TERMINES'>('TOUS');
-  const [matches, setMatches] = useState<MatchItem[]>(MATCHES_DATA);
+  const { data: matches = [], status, error, retry, updatedAt } = useApiResource<MatchItem[]>('/api/matches', {
+    staleAfterMs: DATA_FRESHNESS_MS.matches,
+  });
   const [selectedMatch, setSelectedMatch] = useState<MatchItem | null>(null);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [isResumeModalOpen, setIsResumeModalOpen] = useState(false);
@@ -141,25 +147,8 @@ export default function CalendrierPage() {
     nbPlaces: '1',
   });
 
-  useEffect(() => {
-    async function fetchMatches() {
-      try {
-        const res = await fetch('/api/matches');
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
-            setMatches(data);
-          }
-        }
-      } catch (error) {
-        console.warn('Utilisation du fallback local pour les matchs');
-      }
-    }
-    fetchMatches();
-  }, []);
-
   const filteredMatches = matches.filter((match) => {
-    if (filterTab === 'A_VENIR') return match.status === 'PROGRAMME';
+    if (filterTab === 'A_VENIR') return match.status === 'PROGRAMME' && new Date(match.date).getTime() > Date.now();
     if (filterTab === 'TERMINES') return match.status === 'TERMINE';
     return true;
   });
@@ -178,11 +167,10 @@ export default function CalendrierPage() {
       `Téléphone : ${ticketForm.telephone}`
     );
 
+    if (!WHATSAPP_BILLETTERIE) return;
     window.open(`https://wa.me/${WHATSAPP_BILLETTERIE}?text=${message}`, '_blank');
     setIsTicketModalOpen(false);
   };
-
-  const nextMatch = matches.find((m) => m.status === 'PROGRAMME') ?? matches[0];
 
   return (
     <div className="bg-[#f7f8f7] text-[#1f2937] font-sans space-y-6 sm:space-y-12 pb-16">
@@ -215,19 +203,31 @@ export default function CalendrierPage() {
         {/* LISTE DES MATCHS */}
         <div className="space-y-3 sm:space-y-4">
           <SectionTag label={`${filteredMatches.length} match${filteredMatches.length > 1 ? 's' : ''} affiché${filteredMatches.length > 1 ? 's' : ''}`} />
-          <div className="space-y-2.5 sm:space-y-3">
-            {filteredMatches.map((match) => (
-              <MatchCard
-                key={match.id}
-                match={match}
-                onTicket={(m) => { setSelectedMatch(m); setIsTicketModalOpen(true); }}
-                onResume={(m) => { setSelectedMatch(m); setIsResumeModalOpen(true); }}
-              />
-            ))}
-          </div>
+          <DataState
+            status={status}
+            error={error}
+            onRetry={retry}
+            updatedAt={updatedAt}
+            emptyMessage="Aucun match publié pour le moment."
+            skeleton={<div className="h-40 animate-pulse rounded-xl bg-white" />}
+          >
+            {filteredMatches.length > 0 ? (
+              <div className="space-y-2.5 sm:space-y-3">
+                {filteredMatches.map((match) => (
+                  <MatchCard
+                    key={match.id}
+                    match={match}
+                    onTicket={(m) => { setSelectedMatch(m); setIsTicketModalOpen(true); }}
+                    onResume={(m) => { setSelectedMatch(m); setIsResumeModalOpen(true); }}
+                  />
+                ))}
+              </div>
+            ) : <p role="status" className="py-6 text-center text-sm text-gray-600">Aucun match dans cette catégorie.</p>}
+          </DataState>
         </div>
 
         {/* INFOS BILLETTERIE */}
+        {WHATSAPP_BILLETTERIE && (
         <div className="bg-[#0c130e] text-white p-4 sm:p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#008751]/20 flex items-center justify-center rounded-xl shrink-0">
@@ -248,6 +248,7 @@ export default function CalendrierPage() {
             CONTACTER LA BILLETTERIE
           </a>
         </div>
+        )}
 
       </div>
 
@@ -276,7 +277,7 @@ export default function CalendrierPage() {
             <div className="p-3 bg-[#f7f8f7] border border-gray-200 text-xs text-gray-600 space-y-1 font-mono rounded-lg">
               <p><strong className="text-gray-900">Rencontre :</strong> {selectedMatch.homeTeam} vs {selectedMatch.awayTeam}</p>
               <p><strong className="text-gray-900">Stade :</strong> {selectedMatch.stadium}</p>
-              <p><strong className="text-gray-900">Date :</strong> {new Date(selectedMatch.date).toLocaleString('fr-FR')}</p>
+              <p><strong className="text-gray-900">Date :</strong> {new Date(selectedMatch.date).toLocaleString('fr-FR', { timeZone: 'Africa/Douala' })}</p>
             </div>
 
             <form onSubmit={handleTicketSubmit} className="space-y-3">
@@ -325,9 +326,9 @@ export default function CalendrierPage() {
                   value={ticketForm.tribune}
                   onChange={(e) => setTicketForm((p) => ({ ...p, tribune: e.target.value }))}
                 >
-                  <option>Tribune Populaire (1 000 FCFA)</option>
-                  <option>Tribune Couverte (2 500 FCFA)</option>
-                  <option>Tribune VIP (5 000 FCFA)</option>
+                  <option>Tribune Populaire</option>
+                  <option>Tribune Couverte</option>
+                  <option>Tribune VIP</option>
                 </select>
               </div>
 

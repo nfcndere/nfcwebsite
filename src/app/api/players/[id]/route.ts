@@ -1,5 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
+import { z } from 'zod';
+import { apiError, resourceResponse } from '@/lib/api-response';
+import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
+import { requireEditor } from '@/lib/server/auth';
+
+const playerPatchSchema = z.object({
+  firstName: z.string().trim().min(1).optional(),
+  lastName: z.string().trim().min(1).optional(),
+  number: z.coerce.number().int().min(0).nullable().optional(),
+  position: z.enum(['GARDIEN', 'DEFENSEUR', 'MILIEU', 'ATTAQUANT']).nullable().optional(),
+  nationality: z.string().trim().nullable().optional(),
+  bio: z.string().nullable().optional(),
+  photoId: z.string().nullable().optional(),
+  isCaptain: z.boolean().optional(),
+  birthDate: z.string().nullable().optional(),
+  height: z.coerce.number().int().positive().nullable().optional(),
+  weight: z.coerce.number().int().positive().nullable().optional(),
+  joinedYear: z.coerce.number().int().min(1900).max(2200).nullable().optional(),
+});
 
 // ===================================
 // GET /api/players/[id] — Récupérer un joueur par ID
@@ -15,15 +34,13 @@ export async function GET(
     });
 
     if (!player) {
-      return NextResponse.json({ success: false, error: 'Joueur non trouvé' }, { status: 404 });
+      return apiError('Joueur non trouvé.', 404);
     }
 
-    return NextResponse.json({ success: true, data: player });
+    return resourceResponse(player, player.updatedAt, DATA_FRESHNESS_MS.players);
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: 'Erreur lors de la récupération du joueur' },
-      { status: 500 }
-    );
+    console.error('Failed to retrieve player:', error);
+    return apiError('Impossible de récupérer le joueur.');
   }
 }
 
@@ -34,34 +51,36 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const denied = await requireEditor(request);
+  if (denied) return denied;
   try {
-    const body = await request.json();
+    const parsed = playerPatchSchema.safeParse(await request.json());
+    if (!parsed.success) return apiError('Données de joueur invalides.', 400);
+    const body = parsed.data;
 
     const dataToUpdate: any = {};
     if (body.firstName !== undefined) dataToUpdate.firstName = body.firstName;
     if (body.lastName !== undefined) dataToUpdate.lastName = body.lastName;
-    if (body.number !== undefined) dataToUpdate.number = parseInt(body.number);
+    if (body.number !== undefined) dataToUpdate.number = body.number;
     if (body.position !== undefined) dataToUpdate.position = body.position;
     if (body.nationality !== undefined) dataToUpdate.nationality = body.nationality;
     if (body.bio !== undefined) dataToUpdate.bio = body.bio;
     if (body.photoId !== undefined) dataToUpdate.photoId = body.photoId;
     if (body.isCaptain !== undefined) dataToUpdate.isCaptain = body.isCaptain;
     if (body.birthDate !== undefined) dataToUpdate.birthDate = body.birthDate;
-    if (body.height !== undefined) dataToUpdate.height = parseInt(body.height);
-    if (body.weight !== undefined) dataToUpdate.weight = parseInt(body.weight);
-    if (body.joinedYear !== undefined) dataToUpdate.joinedYear = parseInt(body.joinedYear);
+    if (body.height !== undefined) dataToUpdate.height = body.height;
+    if (body.weight !== undefined) dataToUpdate.weight = body.weight;
+    if (body.joinedYear !== undefined) dataToUpdate.joinedYear = body.joinedYear;
 
     const updated = await prisma.player.update({
       where: { id: params.id },
       data: dataToUpdate,
     });
 
-    return NextResponse.json({ success: true, message: 'Joueur mis à jour', data: updated });
+    return resourceResponse(updated, updated.updatedAt);
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: 'Erreur lors de la modification du joueur' },
-      { status: 500 }
-    );
+    console.error('Failed to update player:', error);
+    return apiError('Impossible de modifier le joueur.');
   }
 }
 
@@ -72,16 +91,16 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const denied = await requireEditor(request);
+  if (denied) return denied;
   try {
     await prisma.player.delete({
       where: { id: params.id },
     });
 
-    return NextResponse.json({ success: true, message: 'Joueur retiré avec succès' });
+    return resourceResponse({ id: params.id, deleted: true }, new Date());
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: 'Erreur lors de la suppression du joueur' },
-      { status: 500 }
-    );
+    console.error('Failed to delete player:', error);
+    return apiError('Impossible de supprimer le joueur.');
   }
 }
