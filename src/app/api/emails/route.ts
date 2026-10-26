@@ -2,23 +2,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 import { apiError, resourceResponse, latestDate } from '@/lib/api-response';
-import { requireEditor } from '@/lib/server/auth';
+import { authorize } from '@/lib/server/auth';
+import { enforceRateLimit } from '@/lib/server/rate-limit';
+import { sendAndLogEmail, textToHtml } from '@/lib/server/resend';
+import { recordAudit } from '@/lib/server/audit';
+import { handleRouteError, parseJsonBody } from '@/lib/server/route-utils';
 
 export const dynamic = 'force-dynamic';
 
-const emailLogSchema = z.object({
-  emailLogId: z.string().optional(),
-  to: z.string().email().optional(),
-  subject: z.string().trim().min(1).optional(),
-  body: z.string().optional(),
+const emailSchema = z.object({
+  emailLogId: z.string().trim().min(1).max(100).optional(),
+  to: z.string().trim().email().max(254).optional(),
+  subject: z.string().trim().min(1).max(200).optional(),
+  body: z.string().min(1).max(20_000).optional(),
+  html: z.string().min(1).max(40_000).optional(),
 });
 
 // ===================================
 // GET /api/emails — Récupérer les logs d'emails envoyés
 // ===================================
 export async function GET(request: NextRequest) {
-  const denied = await requireEditor(request);
-  if (denied) return denied;
+  const auth = await authorize(request);
+  if (!auth.ok) return auth.response;
   try {
     const logs = await prisma.emailLog.findMany({
       orderBy: { createdAt: 'desc' },
@@ -26,54 +31,80 @@ export async function GET(request: NextRequest) {
     });
     return resourceResponse(logs, latestDate(logs, (log) => log.createdAt));
   } catch (error) {
-    console.error('Failed to retrieve email logs:', error);
-    return apiError('Impossible de récupérer les journaux email.');
+    return handleRouteError(error, 'Impossible de récupérer les journaux email.', 'emails:get');
   }
 }
 
 // ===================================
-// POST /api/emails — Réexpédier / Créer un log d'email
+// POST /api/emails — Envoi réel via Resend (ou réexpédition d'un EmailLog) et journalisation
 // ===================================
 export async function POST(request: NextRequest) {
-  const denied = await requireEditor(request);
-  if (denied) return denied;
+  const auth = await authorize(request);
+  if (!auth.ok) return auth.response;
   try {
-    const parsed = emailLogSchema.safeParse(await request.json());
-    if (!parsed.success) return apiError('Données email invalides.', 400);
-    const body = parsed.data;
-    const { emailLogId, to, subject, body: emailBody } = body;
+    const limited = await enforceRateLimit(request, 'emails-send', 30, 60 * 60 * 1_000, { identifier: auth.user.id });
+    if (limited) return limited;
+
+    const parsed = await parseJsonBody(request, emailSchema, 'Données email invalides.');
+    if (!parsed.ok) return parsed.response;
+    const { emailLogId, to, subject, body: textBody, html: htmlBody } = parsed.data;
 
     let targetTo = to;
     let targetSubject = subject;
-    let targetBody = emailBody;
+    let targetText = textBody;
 
     if (emailLogId) {
       const existing = await prisma.emailLog.findUnique({ where: { id: emailLogId } });
-      if (existing) {
-        targetTo = existing.to;
-        targetSubject = existing.subject;
-        targetBody = existing.body;
-      }
+      if (!existing) return apiError('Journal email introuvable.', 404);
+      targetTo = existing.to;
+      targetSubject = existing.subject;
+      targetText = existing.body;
     }
 
     if (!targetTo || !targetSubject) {
       return apiError('Destinataire et sujet email obligatoires.', 400);
     }
 
-    const log = await prisma.emailLog.create({
-      data: {
-        to: targetTo,
-        from: 'no-reply@nfc.cm',
-        subject: targetSubject,
-        body: targetBody || 'Notification système NFC',
-        provider: 'Resend API',
-        status: 'SUCCESS',
-      },
+    const plain = targetText || 'Notification du Ngaoundéré FC.';
+    const html = htmlBody ?? textToHtml(plain);
+
+    const result = await sendAndLogEmail({
+      to: targetTo,
+      subject: targetSubject,
+      html,
+      text: plain,
+      logBody: plain,
     });
 
-    return NextResponse.json({ status: 'ok', message: 'Journal email enregistré.', data: log, updatedAt: log.createdAt });
-  } catch (error: any) {
-    console.error('Failed to log email:', error);
-    return apiError('Impossible d’enregistrer le journal email.');
+    const log = result.logId ? await prisma.emailLog.findUnique({ where: { id: result.logId } }) : null;
+    await recordAudit({
+      request,
+      userId: auth.user.id,
+      action: 'SEND',
+      entity: 'EmailLog',
+      entityId: log?.id ?? null,
+      after: { to: targetTo, subject: targetSubject, status: result.status, providerId: result.providerId },
+    });
+
+    if (!result.ok) {
+      return NextResponse.json(
+        {
+          status: 'error',
+          message: result.status === 'SKIPPED' ? 'Service d’envoi d’e-mails non configuré.' : 'Échec de l’envoi de l’e-mail.',
+          data: log,
+          updatedAt: log?.createdAt?.toISOString() ?? new Date().toISOString(),
+        },
+        { status: result.status === 'SKIPPED' ? 503 : 502 },
+      );
+    }
+
+    return NextResponse.json({
+      status: 'ok',
+      message: 'E-mail envoyé.',
+      data: log,
+      updatedAt: log?.createdAt?.toISOString() ?? new Date().toISOString(),
+    });
+  } catch (error: unknown) {
+    return handleRouteError(error, 'Impossible d’envoyer l’e-mail.', 'emails:post');
   }
 }

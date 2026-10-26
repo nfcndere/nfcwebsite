@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import cloudinary from '@/lib/server/cloudinary';
+import { getCloudinary, isCloudinaryConfigured, CLOUDINARY_FOLDER } from '@/lib/server/cloudinary';
 import fs from 'fs';
 import path from 'path';
-import { requireEditor } from '@/lib/server/auth';
+import { authorize } from '@/lib/server/auth';
 import { apiError } from '@/lib/api-response';
 import { z } from 'zod';
+import { enforceRateLimit } from '@/lib/server/rate-limit';
+import { recordAudit } from '@/lib/server/audit';
 
 const uploadMetadataSchema = z.object({
   file: z.instanceof(File),
@@ -16,12 +18,15 @@ const uploadMetadataSchema = z.object({
 });
 
 // ===================================
-// POST /api/uploads — Téléversement de médias (Images / Vidéos)
+// POST /api/uploads — Téléversement de médias multipart (voie de secours pour les petits fichiers)
 // ===================================
 export async function POST(request: NextRequest) {
-  const denied = await requireEditor(request);
-  if (denied) return denied;
+  const auth = await authorize(request);
+  if (!auth.ok) return auth.response;
   try {
+    const limited = await enforceRateLimit(request, 'uploads-multipart', 30, 15 * 60 * 1_000, { identifier: auth.user.id });
+    if (limited) return limited;
+
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     if (!file) return apiError('Aucun fichier fourni.', 400);
@@ -49,18 +54,13 @@ export async function POST(request: NextRequest) {
     let publicId = `nfc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     let provider = 'local';
 
-    // 1. Tenter un upload vers Cloudinary si configuré
-    const hasCloudinary =
-      process.env.CLOUDINARY_CLOUD_NAME &&
-      process.env.CLOUDINARY_API_KEY &&
-      process.env.CLOUDINARY_API_SECRET;
-
-    if (hasCloudinary) {
+    if (isCloudinaryConfigured()) {
       try {
+        const cloudinary = getCloudinary();
         const uploadResult = await new Promise<any>((resolve, reject) => {
           const uploadStream = cloudinary.uploader.upload_stream(
             {
-              folder: 'nfc-media',
+              folder: CLOUDINARY_FOLDER,
               resource_type: file.type.startsWith('video/') ? 'video' : 'image',
             },
             (error, result) => {
@@ -79,7 +79,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Fallback Stockage Local dans public/uploads si Cloudinary pas actif ou a échoué
     if (!mediaUrl) {
       if (process.env.NODE_ENV === 'production') {
         return apiError('Cloudinary est indisponible. Le stockage local temporaire est désactivé en production.', 503);
@@ -98,7 +97,6 @@ export async function POST(request: NextRequest) {
       provider = 'local';
     }
 
-    // 3. Enregistrer l'asset média dans la base de données Prisma
     const media = await prisma.media.create({
       data: {
         provider,
@@ -111,7 +109,16 @@ export async function POST(request: NextRequest) {
         album,
         mediaType: file.type.startsWith('video/') ? 'VIDEO' : 'IMAGE',
         playerId: playerId || undefined,
+        uploadedById: auth.user.id,
       },
+    });
+    await recordAudit({
+      request,
+      userId: auth.user.id,
+      action: 'CREATE',
+      entity: 'Media',
+      entityId: media.id,
+      after: media,
     });
 
     return NextResponse.json({
@@ -120,7 +127,7 @@ export async function POST(request: NextRequest) {
       data: media,
       url: media.url,
     }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erreur téléversement média:', error);
     return apiError('Erreur lors du téléversement du média.');
   }

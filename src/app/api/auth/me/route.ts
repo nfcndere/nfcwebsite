@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { apiError, resourceResponse } from '@/lib/api-response';
 import { getUserFromRequest, sanitizeUser } from '@/lib/server/auth';
+import { handleRouteError } from '@/lib/server/route-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,6 @@ export async function GET(request: NextRequest) {
 
     return resourceResponse(sanitizeUser(user), user.updatedAt);
   } catch (error) {
-    console.error('Failed to retrieve authenticated user:', error);
-    return apiError('Impossible de vérifier la session.');
+    return handleRouteError(error, 'Impossible de vérifier la session.', 'auth/me');
   }
 }

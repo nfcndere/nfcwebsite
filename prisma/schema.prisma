@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ===================================
@@ -21,45 +20,129 @@ enum UserRole {
 // Utilisateur / Admin
 // ===================================
 model User {
-  id           String   @id @default(uuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         UserRole @default(USER)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                 String    @id @default(uuid())
+  name               String
+  email              String    @unique
+  passwordHash       String
+  role               UserRole  @default(USER)
+  // Désactivation sans suppression (les articles et médias restent attribués).
+  active             Boolean   @default(true)
+  // Incrémenté à chaque changement de mot de passe / désactivation pour invalider les jetons émis.
+  tokenVersion       Int       @default(0)
+  // Vrai après création par un administrateur avec un mot de passe temporaire.
+  mustChangePassword Boolean   @default(false)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  articles      Article[]
-  uploadedMedia Media[]
+  articles             Article[]
+  uploadedMedia        Media[]
   updatedClubStandings ClubStanding[]
+  clubStandingHistory  ClubStandingHistory[]
+  auditLogs            AuditLog[]
+  passwordResetTokens  PasswordResetToken[]
+  pushSubscriptions    PushSubscription[]
+}
+
+// ===================================
+// Jeton de réinitialisation de mot de passe (usage unique, stocké haché)
+// ===================================
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ===================================
+// Journal d'audit des mutations d'administration
+// ===================================
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String // CREATE | UPDATE | DELETE | RESTORE | LOGIN | PASSWORD_CHANGE | ...
+  entity    String // Article | Match | Player | ClubStanding | ...
+  entityId  String?
+  before    Json?
+  after     Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entity, entityId])
+  @@index([userId])
+}
+
+// ===================================
+// Abonnement Web Push (navigateur d'un administrateur)
+// ===================================
+model PushSubscription {
+  id        String   @id @default(uuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Season {
-  id           String        @id @default(uuid())
-  label        String        @unique
-  startsAt     DateTime
-  endsAt       DateTime
-  isCurrent    Boolean       @default(false)
-  clubStanding ClubStanding?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id                  String                @id @default(uuid())
+  label               String                @unique
+  startsAt            DateTime
+  endsAt              DateTime
+  isCurrent           Boolean               @default(false)
+  clubStanding        ClubStanding?
+  clubStandingHistory ClubStandingHistory[]
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
 }
 
 model ClubStanding {
-  id            String   @id @default(uuid())
-  seasonId      String   @unique
-  rank          Int
-  played        Int
-  won           Int
-  drawn         Int
-  lost          Int
-  goalsFor      Int
-  goalsAgainst  Int
-  form          String?
-  updatedById   String?
-  season        Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  updatedBy     User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(uuid())
+  seasonId     String   @unique
+  rank         Int
+  played       Int
+  won          Int
+  drawn        Int
+  lost         Int
+  goalsFor     Int
+  goalsAgainst Int
+  form         String?
+  updatedById  String?
+  season       Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  updatedBy    User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt    DateTime @updatedAt
+}
+
+// ===================================
+// Historique des modifications du classement du NFC
+// ===================================
+model ClubStandingHistory {
+  id           String   @id @default(uuid())
+  seasonId     String
+  rank         Int
+  played       Int
+  won          Int
+  drawn        Int
+  lost         Int
+  goalsFor     Int
+  goalsAgainst Int
+  form         String?
+  changedById  String?
+  season       Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  changedBy    User?    @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+
+  @@index([seasonId, createdAt])
 }
 
 model ClubSetting {
@@ -80,9 +163,9 @@ model ApiRateLimitBucket {
 // Média (Image / Vidéo) avec association joueur optionnelle
 // ===================================
 model Media {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   provider     String
-  publicId     String   @unique
+  publicId     String    @unique
   url          String
   mimeType     String
   width        Int?
@@ -90,16 +173,16 @@ model Media {
   size         Int?
   variants     Json?
   altText      String?
-  album        String?     // Album galerie (ex: "Entraînements", "Saison 2025-2026")
-  title        String?     // Titre de l'asset
-  mediaType    String?     // "IMAGE" ou "VIDEO"
+  album        String? // Album galerie (ex: "Entraînements", "Saison 2025-2026")
+  title        String? // Titre de l'asset
+  mediaType    String? // "IMAGE" ou "VIDEO"
   // Association optionnelle à un joueur (pour la page détail joueur)
   playerId     String?
-  player       Player?     @relation(fields: [playerId], references: [id])
+  player       Player?   @relation(fields: [playerId], references: [id])
   uploadedById String?
-  uploadedBy   User?       @relation(fields: [uploadedById], references: [id])
+  uploadedBy   User?     @relation(fields: [uploadedById], references: [id])
   coverOf      Article[]
-  createdAt    DateTime    @default(now())
+  createdAt    DateTime  @default(now())
 }
 
 // ===================================
@@ -116,43 +199,51 @@ model Article {
   authorId    String?
   author      User?     @relation(fields: [authorId], references: [id])
   category    String?
-  videoUrl    String?   // URL de la vidéo associée à l'article (YouTube, Vimeo, etc.)
+  videoUrl    String? // URL de la vidéo associée à l'article (YouTube, Vimeo, etc.)
   published   Boolean   @default(false)
   publishedAt DateTime?
+  // Suppression logique : les lectures publiques filtrent deletedAt = null.
+  deletedAt   DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@index([deletedAt])
 }
 
 // ===================================
 // Joueur
 // ===================================
 model Player {
-  id           String   @id @default(uuid())
-  firstName    String
-  lastName     String
-  number       Int?
-  position     String?  // GARDIEN | DEFENSEUR | MILIEU | ATTAQUANT
-  nationality  String?
-  bio          String?
-  photoId      String?
-  stats        Json?
-  isCaptain    Boolean  @default(false)
-  birthDate    String?
-  height       Int?
-  weight       Int?
-  joinedYear   Int?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String    @id @default(uuid())
+  firstName   String
+  lastName    String
+  number      Int?
+  position    String? // GARDIEN | DEFENSEUR | MILIEU | ATTAQUANT
+  nationality String?
+  bio         String?
+  photoId     String?
+  stats       Json?
+  isCaptain   Boolean   @default(false)
+  birthDate   String?
+  height      Int?
+  weight      Int?
+  joinedYear  Int?
+  // Suppression logique : les lectures publiques filtrent deletedAt = null.
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   // Médias associés à ce joueur (galerie spécifique joueur)
-  media        Media[]
+  media Media[]
+
+  @@index([deletedAt])
 }
 
 // ===================================
 // Match
 // ===================================
 model Match {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   date        DateTime
   homeTeam    String
   awayTeam    String
@@ -160,11 +251,15 @@ model Match {
   awayScore   Int?
   stadium     String?
   competition String?
-  status      String   @default("PROGRAMME") // PROGRAMME | EN_COURS | TERMINE | REPORTE
+  status      String    @default("PROGRAMME") // PROGRAMME | EN_COURS | TERMINE | REPORTE
   summary     String?
   events      Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // Suppression logique : les lectures publiques filtrent deletedAt = null.
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([deletedAt])
 }
 
 // ===================================
@@ -176,6 +271,8 @@ model Sponsor {
   link      String?
   logoId    String?
   priority  Int      @default(0)
+  // Seuls les partenaires actifs sont servis par l'API publique.
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -184,13 +281,20 @@ model Sponsor {
 // Soumission de formulaire (académie, contact, newsletter, etc.)
 // ===================================
 model FormSubmission {
-  id        String   @id @default(uuid())
-  type      String   // "ACADEMIE" | "NEWSLETTER" | "CONTACT" | "BILLETTERIE"
-  payload   Json     // Données complètes du formulaire (nom, email, besoins, etc.)
-  ip        String?
-  userAgent String?
-  processed Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id             String   @id @default(uuid())
+  type           String // "ACADEMIE" | "NEWSLETTER" | "CONTACT" | "BILLETTERIE"
+  payload        Json // Données complètes du formulaire (nom, email, besoins, etc.)
+  ip             String?
+  userAgent      String?
+  processed      Boolean  @default(false)
+  // Notes internes de l'administration (jamais mélangées au payload soumis par le public).
+  adminNotes     String?
+  // Suivi académie : NOUVEAU | CONTACTE | CONVOQUE | ADMIS | REFUSE (null = NOUVEAU pour l'historique).
+  followUpStatus String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  @@index([type, followUpStatus])
 }
 
 // ===================================
@@ -215,6 +319,7 @@ model EmailLog {
   body       String
   provider   String
   providerId String?
-  status     String
+  status     String // SUCCESS | FAILED | SKIPPED
+  error      String?
   createdAt  DateTime @default(now())
 }

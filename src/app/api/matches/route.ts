@@ -3,18 +3,21 @@ import prisma from '@/lib/prisma';
 import { z } from 'zod';
 import { apiError, resourceResponse, latestDate } from '@/lib/api-response';
 import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
-import { requireEditor } from '@/lib/server/auth';
+import { authorize } from '@/lib/server/auth';
+import { recordAudit } from '@/lib/server/audit';
+import { handleRouteError, parseJsonBody } from '@/lib/server/route-utils';
+import { NOT_DELETED } from '@/lib/soft-delete';
 
 export const dynamic = 'force-dynamic';
 
 const matchSchema = z.object({
-  homeTeam: z.string().trim().min(1),
-  awayTeam: z.string().trim().min(1),
+  homeTeam: z.string().trim().min(1).max(120),
+  awayTeam: z.string().trim().min(1).max(120),
   date: z.string().datetime({ offset: true }),
-  stadium: z.string().trim().optional(),
-  competition: z.string().trim().optional(),
+  stadium: z.string().trim().max(160).nullable().optional(),
+  competition: z.string().trim().max(120).nullable().optional(),
   status: z.enum(['PROGRAMME', 'EN_COURS', 'TERMINE', 'REPORTE', 'ANNULE']).optional(),
-  summary: z.string().optional(),
+  summary: z.string().max(4_000).nullable().optional(),
   homeScore: z.number().int().min(0).nullable().optional(),
   awayScore: z.number().int().min(0).nullable().optional(),
 });
@@ -25,7 +28,7 @@ const matchesQuerySchema = z.object({
 });
 
 // ===================================
-// GET /api/matches — Récupérer tous les matchs
+// GET /api/matches — Récupérer tous les matchs (non supprimés)
 // ===================================
 export async function GET(request: NextRequest) {
   try {
@@ -38,7 +41,7 @@ export async function GET(request: NextRequest) {
     if (!parsed.success) return apiError('Paramètres de recherche invalides.', 400);
     const { status, page, pageSize } = parsed.data;
 
-    const where = status ? { status } : {};
+    const where = status ? { status, ...NOT_DELETED } : { ...NOT_DELETED };
 
     const matches = await prisma.match.findMany({
       where,
@@ -49,21 +52,20 @@ export async function GET(request: NextRequest) {
 
     const activeLive = matches.some((match) => match.status === 'EN_COURS');
     return resourceResponse(matches, latestDate(matches, (match) => match.updatedAt), activeLive ? DATA_FRESHNESS_MS.liveMatch : DATA_FRESHNESS_MS.matches);
-  } catch (error: any) {
-    console.error('Failed to retrieve matches:', error);
-    return apiError('Impossible de récupérer les matchs.');
+  } catch (error: unknown) {
+    return handleRouteError(error, 'Impossible de récupérer les matchs.', 'matches:get');
   }
 }
 
 // ===================================
-// POST /api/matches — Créer un match (admin)
+// POST /api/matches — Créer un match (admin / éditeur)
 // ===================================
 export async function POST(request: NextRequest) {
-  const denied = await requireEditor(request);
-  if (denied) return denied;
+  const auth = await authorize(request);
+  if (!auth.ok) return auth.response;
   try {
-    const parsed = matchSchema.safeParse(await request.json());
-    if (!parsed.success) return apiError('Données de match invalides.', 400);
+    const parsed = await parseJsonBody(request, matchSchema, 'Données de match invalides.');
+    if (!parsed.ok) return parsed.response;
     const body = parsed.data;
     const match = await prisma.match.create({
       data: {
@@ -78,9 +80,16 @@ export async function POST(request: NextRequest) {
         awayScore: body.awayScore ?? null,
       },
     });
+    await recordAudit({
+      request,
+      userId: auth.user.id,
+      action: 'CREATE',
+      entity: 'Match',
+      entityId: match.id,
+      after: match,
+    });
     return NextResponse.json({ status: 'ok', data: match, updatedAt: match.updatedAt }, { status: 201 });
   } catch (error) {
-    console.error('Failed to create match:', error);
-    return apiError('Impossible de créer le match.');
+    return handleRouteError(error, 'Impossible de créer le match.', 'matches:post');
   }
 }
