@@ -5,4 +5,5 @@ export const DATA_FRESHNESS_MS = {
   players: 30 * 24 * 60 * 60 * 1_000,
   matches: 30 * 24 * 60 * 60 * 1_000,
   media: 30 * 24 * 60 * 60 * 1_000,
+  partners: 30 * 24 * 60 * 60 * 1_000,
 } as const;

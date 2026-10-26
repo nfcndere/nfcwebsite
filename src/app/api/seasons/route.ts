@@ -4,6 +4,8 @@ import prisma from '@/lib/prisma';
 import { apiError, resourceResponse, latestDate } from '@/lib/api-response';
 import { requireEditor } from '@/lib/server/auth';
 
+export const dynamic = 'force-dynamic';
+
 const seasonSchema = z.object({
   label: z.string().trim().min(1).max(30),
   startsAt: z.string().datetime({ offset: true }),

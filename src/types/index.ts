@@ -76,7 +76,7 @@ export interface StandingItem {
   goalsAgainst: number;
   goalDifference: number;
   points: number;
-  form?: string;
+  form?: string | null;
 }
 
 // ===================================

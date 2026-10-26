@@ -5,6 +5,8 @@ import { apiError, resourceResponse, latestDate } from '@/lib/api-response';
 import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
 import { requireEditor } from '@/lib/server/auth';
 
+export const dynamic = 'force-dynamic';
+
 const matchSchema = z.object({
   homeTeam: z.string().trim().min(1),
   awayTeam: z.string().trim().min(1),
@@ -16,6 +18,11 @@ const matchSchema = z.object({
   homeScore: z.number().int().min(0).nullable().optional(),
   awayScore: z.number().int().min(0).nullable().optional(),
 });
+const matchesQuerySchema = z.object({
+  status: z.enum(['PROGRAMME', 'EN_COURS', 'TERMINE', 'REPORTE', 'ANNULE']).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(50),
+});
 
 // ===================================
 // GET /api/matches — Récupérer tous les matchs
@@ -23,13 +30,21 @@ const matchSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
+    const parsed = matchesQuerySchema.safeParse({
+      status: searchParams.get('status') ?? undefined,
+      page: searchParams.get('page') ?? undefined,
+      pageSize: searchParams.get('pageSize') ?? undefined,
+    });
+    if (!parsed.success) return apiError('Paramètres de recherche invalides.', 400);
+    const { status, page, pageSize } = parsed.data;
 
     const where = status ? { status } : {};
 
     const matches = await prisma.match.findMany({
       where,
       orderBy: { date: 'asc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     });
 
     const activeLive = matches.some((match) => match.status === 'EN_COURS');

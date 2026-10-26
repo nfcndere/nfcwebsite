@@ -5,6 +5,15 @@ import fs from 'fs';
 import path from 'path';
 import { requireEditor } from '@/lib/server/auth';
 import { apiError } from '@/lib/api-response';
+import { z } from 'zod';
+
+const uploadMetadataSchema = z.object({
+  file: z.instanceof(File),
+  title: z.string().trim().max(160),
+  altText: z.string().trim().max(300),
+  album: z.string().trim().max(100),
+  playerId: z.string().trim().max(100).nullable(),
+});
 
 // ===================================
 // POST /api/uploads — Téléversement de médias (Images / Vidéos)
@@ -15,16 +24,22 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
-    const altText = (formData.get('altText') as string) || '';
-    const title = (formData.get('title') as string) || (file?.name ?? 'Média NFC');
-    const album = (formData.get('album') as string) || 'Général';
-    const playerId = (formData.get('playerId') as string) || null;
-
-    if (!file) {
-      return apiError('Aucun fichier fourni.', 400);
-    }
+    if (!file) return apiError('Aucun fichier fourni.', 400);
     if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
       return apiError('Seules les images et vidéos sont acceptées.', 400);
+    }
+    const metadata = uploadMetadataSchema.safeParse({
+      file,
+      title: formData.get('title') || file.name,
+      altText: formData.get('altText') || '',
+      album: formData.get('album') || 'Général',
+      playerId: formData.get('playerId') || null,
+    });
+    if (!metadata.success) return apiError('Métadonnées de média invalides.', 400);
+    const { title, altText, album, playerId } = metadata.data;
+    const maxBytes = file.type.startsWith('video/') ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size === 0 || file.size > maxBytes) {
+      return apiError('La taille du fichier est invalide ou dépasse la limite autorisée.', 400);
     }
 
     const bytes = await file.arrayBuffer();

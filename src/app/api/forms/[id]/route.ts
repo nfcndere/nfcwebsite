@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { requireEditor } from '@/lib/server/auth';
 import { apiError, resourceResponse } from '@/lib/api-response';
 
+export const dynamic = 'force-dynamic';
+
 const processedSchema = z.object({ processed: z.boolean().optional() });
 
 // ===================================

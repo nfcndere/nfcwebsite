@@ -13,20 +13,20 @@ type TokenPayload = {
   exp?: number;
 };
 
+if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+  throw new Error('JWT_SECRET and JWT_REFRESH_SECRET must be configured.');
+}
+
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
-  if (!secret && process.env.NODE_ENV === 'production') {
-    throw new Error('JWT_SECRET must be configured in production.');
-  }
-  return secret || 'local-development-secret-only';
+  if (!secret) throw new Error('JWT_SECRET must be configured.');
+  return secret;
 }
 
 function getRefreshSecret() {
   const secret = process.env.JWT_REFRESH_SECRET;
-  if (!secret && process.env.NODE_ENV === 'production') {
-    throw new Error('JWT_REFRESH_SECRET must be configured in production.');
-  }
-  return secret || getJwtSecret();
+  if (!secret) throw new Error('JWT_REFRESH_SECRET must be configured.');
+  return secret;
 }
 
 export function signAccessToken(user: { id: string; email?: string | null; role?: string | null }) {
@@ -84,7 +84,8 @@ export async function getUserFromToken(token: string, type: 'access' | 'refresh'
 
     return user ?? null;
   } catch (err) {
-    return null;
+    if (err instanceof jwt.JsonWebTokenError || err instanceof jwt.TokenExpiredError) return null;
+    throw err;
   }
 }
 

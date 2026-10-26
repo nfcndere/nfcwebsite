@@ -6,6 +6,8 @@ import { apiError, resourceResponse } from '@/lib/api-response';
 import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
 import { requireEditor } from '@/lib/server/auth';
 
+export const dynamic = 'force-dynamic';
+
 const mediaPatchSchema = z.object({
   title: z.string().nullable().optional(),
   altText: z.string().nullable().optional(),

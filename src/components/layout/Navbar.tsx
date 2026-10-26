@@ -186,7 +186,7 @@ export const Navbar = () => {
                 NGAOUNDÉRÉ <span className="text-[color:var(--nfc-green)]">FC</span>
               </span>
               <span className="text-[8px] tracking-[0.18em] text-[color:var(--nfc-green)] font-display font-bold uppercase block whitespace-nowrap">
-                L'ÉTOILE DE L'ADAMAOUA
+                L&apos;ÉTOILE DE L&apos;ADAMAOUA
               </span>
             </div>
           </Link>
@@ -276,7 +276,7 @@ export const Navbar = () => {
                 </div>
                 <div>
                   <h3 className="font-display text-sm font-extrabold text-white leading-none">NGAOUNDÉRÉ FC</h3>
-                  <span className="text-[9px] font-display font-bold text-[#8cea5a] tracking-wider uppercase">L'Étoile de l'Adamaoua</span>
+                  <span className="text-[9px] font-display font-bold text-[#8cea5a] tracking-wider uppercase">L&apos;Étoile de l&apos;Adamaoua</span>
                 </div>
               </Link>
               <button

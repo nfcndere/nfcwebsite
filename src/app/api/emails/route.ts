@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { apiError, resourceResponse, latestDate } from '@/lib/api-response';
 import { requireEditor } from '@/lib/server/auth';
 
+export const dynamic = 'force-dynamic';
+
 const emailLogSchema = z.object({
   emailLogId: z.string().optional(),
   to: z.string().email().optional(),

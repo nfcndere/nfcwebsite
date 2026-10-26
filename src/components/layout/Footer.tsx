@@ -4,11 +4,15 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowUpRight, CheckCircle2, Facebook, Mail } from 'lucide-react';
+import { useClubOverview } from '@/components/providers/ClubOverviewProvider';
+import { getSafeExternalUrl } from '@/lib/public-links';
 
 export default function Footer() {
+  const { data } = useClubOverview();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterState, setNewsletterState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [newsletterMessage, setNewsletterMessage] = useState('');
+  const facebookUrl = getSafeExternalUrl(data?.settings.facebookUrl || process.env.NEXT_PUBLIC_FACEBOOK_URL);
 
   const handleNewsletterSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -37,7 +41,6 @@ export default function Footer() {
       { label: 'Présentation', href: '/le-club' },
       { label: 'Effectif', href: '/effectif' },
       { label: 'Académie', href: '/academie' },
-      { label: 'Histoire du club', href: '/le-club' },
     ],
     competitions: [
       { label: 'Calendrier', href: '/calendrier' },
@@ -45,7 +48,6 @@ export default function Footer() {
     ],
     media: [
       { label: 'Actualités', href: '/actualites' },
-      { label: 'Galerie photos', href: '/galerie' },
       { label: 'Photos & vidéos', href: '/galerie' },
       { label: 'Newsletter', href: '#newsletter' },
     ],
@@ -72,13 +74,13 @@ export default function Footer() {
                   NGAOUNDÉRÉ <span className="text-[color:var(--nfc-yellow)]">FC</span>
                 </span>
                 <span className="mt-1 block text-[10px] font-display font-bold uppercase tracking-[0.22em] text-[color:var(--nfc-yellow)]">
-                  L'ÉTOILE DE L'ADAMAOUA
+                  L&apos;ÉTOILE DE L&apos;ADAMAOUA
                 </span>
               </div>
             </div>
 
             <p className="mt-5 max-w-xs text-base italic text-[color:var(--nfc-green-light)]">
-              L'Étoile de l'Adamaoua
+              L&apos;Étoile de l&apos;Adamaoua
             </p>
             <p className="mt-2 max-w-xs text-xs text-[color:var(--nfc-green-light)]/80">
               Passion, fierté et formation au cœur du football camerounais.
@@ -90,7 +92,7 @@ export default function Footer() {
               Newsletter
             </div>
             <h3 className="mt-3 max-w-md font-display text-xl font-extrabold leading-tight text-[color:var(--nfc-white)] sm:text-2xl">
-              Recevez toute l'actualité du club en avant-première
+              Recevez toute l&apos;actualité du club en avant-première
             </h3>
             <p className="mt-2 max-w-md text-xs text-[color:var(--nfc-green-light)]">
               Inscrivez-vous gratuitement pour recevoir les compos, les résultats et les offres exclusives.
@@ -125,7 +127,7 @@ export default function Footer() {
             <div className="mt-3 flex items-center gap-2 text-[10px] text-[color:var(--nfc-green-light)]/90">
               <input id="consent-newsletter" type="checkbox" className="h-3.5 w-3.5 accent-[color:var(--nfc-yellow)]" readOnly checked />
               <label htmlFor="consent-newsletter">
-                J'accepte de recevoir les emails du NFC. Désinscription possible à tout moment.
+                J&apos;accepte de recevoir les emails du NFC. Désinscription possible à tout moment.
               </label>
             </div>
 
@@ -137,13 +139,13 @@ export default function Footer() {
             )}
           </div>
 
-          {process.env.NEXT_PUBLIC_FACEBOOK_URL && <div className="lg:col-span-3">
+          {facebookUrl && <div className="lg:col-span-3">
             <div className="text-[11px] font-display font-bold uppercase tracking-[0.25em] text-[color:var(--nfc-yellow)]">
               Suivez-nous
             </div>
 
             <a
-              href={process.env.NEXT_PUBLIC_FACEBOOK_URL}
+              href={facebookUrl}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Suivez le NFC sur Facebook"

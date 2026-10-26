@@ -1,25 +1,68 @@
 'use client';
 
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, type ReactNode } from 'react';
 import type { MatchItem, StandingItem } from '@/types';
 import { useApiResource } from '@/lib/use-api-resource';
+import type { ApiStatus } from '@/lib/use-api-resource';
+import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
 
-type ClubOverview = {
+type StandingResponse = {
   season: { id: string; label: string } | null;
-  standings: (StandingItem & { rank: number })[];
-  nextMatch: MatchItem | null;
-  liveMatch: MatchItem | null;
+  nfc: (StandingItem & { rank: number }) | null;
 };
 
-const ClubOverviewContext = createContext<ReturnType<typeof useApiResource<ClubOverview>> | null>(null);
+type ClubExtras = {
+  nextMatch: MatchItem | null;
+  liveMatch: MatchItem | null;
+  settings: Record<string, string>;
+};
+
+type ClubOverview = StandingResponse & ClubExtras;
+type ClubOverviewValue = {
+  data: ClubOverview | null;
+  status: ApiStatus;
+  error: string | null;
+  updatedAt: string | null;
+  retry: () => void;
+  matchStatus: ApiStatus;
+  matchError: string | null;
+  matchUpdatedAt: string | null;
+};
+
+const ClubOverviewContext = createContext<ClubOverviewValue | null>(null);
 
 export function ClubOverviewProvider({ children }: { children: ReactNode }) {
-  const resource = useApiResource<ClubOverview>('/api/club-overview', {
-    staleAfterMs: 48 * 60 * 60 * 1_000,
+  const standings = useApiResource<StandingResponse>('/api/standings', {
+    staleAfterMs: DATA_FRESHNESS_MS.standings,
     retry: 1,
     timeoutMs: 10_000,
   });
-  return <ClubOverviewContext.Provider value={resource}>{children}</ClubOverviewContext.Provider>;
+  const extras = useApiResource<ClubExtras>('/api/club-overview', {
+    staleAfterMs: DATA_FRESHNESS_MS.matches,
+    retry: 1,
+    timeoutMs: 10_000,
+  });
+  const retry = useCallback(() => {
+    standings.retry();
+    extras.retry();
+  }, [standings.retry, extras.retry]);
+  const value: ClubOverviewValue = {
+    data: standings.data || extras.data ? {
+      season: standings.data?.season ?? null,
+      nfc: standings.data?.nfc ?? null,
+      nextMatch: extras.data?.nextMatch ?? null,
+      liveMatch: extras.data?.liveMatch ?? null,
+      settings: extras.data?.settings ?? {},
+    } : null,
+    status: standings.status,
+    error: standings.error,
+    updatedAt: standings.updatedAt,
+    retry,
+    matchStatus: extras.status,
+    matchError: extras.error,
+    matchUpdatedAt: extras.updatedAt,
+  };
+  return <ClubOverviewContext.Provider value={value}>{children}</ClubOverviewContext.Provider>;
 }
 
 export function useClubOverview() {

@@ -31,46 +31,49 @@ model User {
 
   articles      Article[]
   uploadedMedia Media[]
+  updatedClubStandings ClubStanding[]
 }
 
 model Season {
-  id        String     @id @default(uuid())
-  label     String     @unique
-  startsAt  DateTime
-  endsAt    DateTime
-  isCurrent Boolean    @default(false)
-  standings Standing[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id           String        @id @default(uuid())
+  label        String        @unique
+  startsAt     DateTime
+  endsAt       DateTime
+  isCurrent    Boolean       @default(false)
+  clubStanding ClubStanding?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
-model Team {
-  id        String     @id @default(uuid())
-  name      String     @unique
-  logoUrl   String?
-  standings Standing[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-}
-
-model Standing {
+model ClubStanding {
   id            String   @id @default(uuid())
-  seasonId      String
-  teamId        String
-  played        Int      @default(0)
-  won           Int      @default(0)
-  drawn         Int      @default(0)
-  lost          Int      @default(0)
-  goalsFor      Int      @default(0)
-  goalsAgainst  Int      @default(0)
-  points        Int      @default(0)
+  seasonId      String   @unique
+  rank          Int
+  played        Int
+  won           Int
+  drawn         Int
+  lost          Int
+  goalsFor      Int
+  goalsAgainst  Int
   form          String?
+  updatedById   String?
   season        Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  team          Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  updatedBy     User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
   updatedAt     DateTime @updatedAt
+}
 
-  @@unique([seasonId, teamId])
-  @@index([seasonId, points])
+model ClubSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model ApiRateLimitBucket {
+  key       String   @id
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
 }
 
 // ===================================
@@ -168,11 +171,13 @@ model Match {
 // Sponsor / Partenaire
 // ===================================
 model Sponsor {
-  id       String   @id @default(uuid())
-  name     String
-  link     String?
-  logoId   String?
-  priority Int      @default(0)
+  id        String   @id @default(uuid())
+  name      String
+  link      String?
+  logoId    String?
+  priority  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ===================================
@@ -194,6 +199,7 @@ model FormSubmission {
 model NewsletterSubscriber {
   id        String   @id @default(uuid())
   email     String   @unique
+  ip        String?
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 }

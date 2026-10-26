@@ -1,5 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { apiError, resourceResponse } from '@/lib/api-response';
 import { getUserFromRequest, sanitizeUser } from '@/lib/server/auth';
+
+export const dynamic = 'force-dynamic';
 
 // ===================================
 // GET /api/auth/me — Obtenir le profil de l'utilisateur connecté
@@ -9,11 +12,12 @@ export async function GET(request: NextRequest) {
     const user = await getUserFromRequest(request);
 
     if (!user) {
-      return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
+      return apiError('Session expirée ou utilisateur introuvable.', 401);
     }
 
-    return NextResponse.json({ success: true, user: sanitizeUser(user) });
+    return resourceResponse(sanitizeUser(user), user.updatedAt);
   } catch (error) {
-    return NextResponse.json({ error: 'Session expirée' }, { status: 401 });
+    console.error('Failed to retrieve authenticated user:', error);
+    return apiError('Impossible de vérifier la session.');
   }
 }
