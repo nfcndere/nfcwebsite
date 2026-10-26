@@ -122,7 +122,7 @@ export default function EffectifPage() {
               {attaquants.length > 0 && <PlayerSection title="Attaquants" players={attaquants} />}
               {players.some((player) => !player.position) && <PlayerSection title="Poste non communiqué" players={players.filter((player) => !player.position)} />}
             </section>
-          ) : <p role="status" className="py-6 text-center text-sm text-gray-600">L'effectif de la saison sera bientôt publié.</p>}
+          ) : <p role="status" className="py-6 text-center text-sm text-gray-600">L&apos;effectif de la saison sera bientôt publié.</p>}
         </DataState>
 
         <div className="text-center pt-2">

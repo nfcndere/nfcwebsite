@@ -119,7 +119,7 @@ export default function HomePage() {
             {/* Tag */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[color:var(--nfc-yellow)] text-[color:var(--nfc-dark)] text-xs font-bold font-display uppercase animate-fade-in-up">
               <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--nfc-dark)] inline-block" />
-              <span>ÉQUIPE PRO • LIGUE RÉGIONALE DE L'ADAMAOUA</span>
+              <span>ÉQUIPE PRO • LIGUE RÉGIONALE DE L&apos;ADAMAOUA</span>
             </div>
 
             {/* Main Title */}
@@ -130,7 +130,7 @@ export default function HomePage() {
 
             {/* Subtitle */}
             <p className="text-gray-300 text-sm sm:text-base leading-relaxed font-normal max-w-2xl">
-              Un lancement de saison en feu pour conquérir le championnat régional cette année et viser l'Élite 2 camerounaise.
+              Un lancement de saison en feu pour conquérir le championnat régional cette année et viser l&apos;Élite 2 camerounaise.
             </p>
 
             {/* Buttons */}
@@ -229,7 +229,7 @@ export default function HomePage() {
                 LE JEU, LA FORMATION, LA PASSION
               </h2>
               <p className="text-[color:var(--nfc-white)] text-xs sm:text-sm leading-relaxed max-w-xl">
-                Notre académie allie excellence sportive et cursus éducatif rigoureux. Nous préparons les jeunes pépites de la région de l'Adamaoua et du Cameroun au football professionnel.
+                Notre académie allie excellence sportive et cursus éducatif rigoureux. Nous préparons les jeunes pépites de la région de l&apos;Adamaoua et du Cameroun au football professionnel.
               </p>
 
               <div className="flex flex-wrap gap-3 pt-4">
@@ -277,10 +277,10 @@ export default function HomePage() {
               </div>
 
               <h3 className="font-display text-xl sm:text-2xl font-extrabold uppercase leading-tight text-white mt-2">
-                RESTEZ AU CŒUR DE L'ACTION
+                RESTEZ AU CŒUR DE L&apos;ACTION
               </h3>
               <p className="text-xs text-gray-200 mt-2 leading-relaxed max-w-lg font-normal">
-                Recevez en avant-première les résumés des matchs, les dates des détections de l'académie et les actualités exclusives du Ngaoundéré FC.
+                Recevez en avant-première les résumés des matchs, les dates des détections de l&apos;académie et les actualités exclusives du Ngaoundéré FC.
               </p>
             </div>
 
@@ -327,7 +327,7 @@ export default function HomePage() {
                 ASSOCIEZ VOTRE IMAGE AU NFC
               </h3>
               <p className="text-xs text-gray-600 mt-2 leading-relaxed">
-                Devenez partenaire officiel du Ngaoundéré FC et bénéficiez d'une visibilité stratégique maximale lors de nos matchs à domicile et événements.
+                Devenez partenaire officiel du Ngaoundéré FC et bénéficiez d&apos;une visibilité stratégique maximale lors de nos matchs à domicile et événements.
               </p>
 
               {/* Bullet perks */}

@@ -66,7 +66,7 @@ export default function AcademiePage() {
         
       >
         <div className="flex flex-wrap gap-3 pt-2">
-          <a href="#formulaire-detection" className="btn-yellow text-xs">S'INSCRIRE AUX DÉTECTIONS</a>
+          <a href="#formulaire-detection" className="btn-yellow text-xs">S&apos;INSCRIRE AUX DÉTECTIONS</a>
           <a href="#formation" className="btn-dark text-xs">EN SAVOIR PLUS</a>
         </div>
       </PageHeader>
@@ -93,10 +93,10 @@ export default function AcademiePage() {
           <div className="space-y-6">
             <div>
               <p className="text-[10px] uppercase font-bold tracking-widest text-[#008751] mb-1">Cadre de Vie</p>
-              <h2 className="font-display text-xl sm:text-2xl font-extrabold text-gray-900 uppercase">L'Internat du NFC</h2>
+              <h2 className="font-display text-xl sm:text-2xl font-extrabold text-gray-900 uppercase">L&apos;Internat du NFC</h2>
             </div>
             <p className="text-sm text-gray-500 leading-relaxed">
-              L'internat du Ngaoundéré FC est un foyer pédagogique où discipline, solidarité et ambition se conjuguent pour forger les caractères des futurs champions. Nos pensionnaires bénéficient d'un environnement sécurisé, encadré 24h/24.
+              L&apos;internat du Ngaoundéré FC est un foyer pédagogique où discipline, solidarité et ambition se conjuguent pour forger les caractères des futurs champions. Nos pensionnaires bénéficient d&apos;un environnement sécurisé, encadré 24h/24.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
@@ -178,7 +178,7 @@ export default function AcademiePage() {
         {/* ── PROCESSUS DE DÉTECTION ───────────────────────────────── */}
         <section className="space-y-6">
           <div>
-            <p className="text-[10px] uppercase font-bold tracking-widest text-[#008751] mb-1">Rejoindre l'Académie</p>
+            <p className="text-[10px] uppercase font-bold tracking-widest text-[#008751] mb-1">Rejoindre l&apos;Académie</p>
             <h2 className="font-display text-xl sm:text-2xl font-extrabold text-gray-900 uppercase">Processus de Détection</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -298,7 +298,7 @@ export default function AcademiePage() {
 
         {/* ── CTA ──────────────────────────────────────────────────── */}
         <div className="text-center space-y-3">
-          <p className="text-sm text-gray-500">Des questions sur l'académie ?</p>
+          <p className="text-sm text-gray-500">Des questions sur l&apos;académie ?</p>
           <Link href="/le-club" className="btn-green text-xs inline-flex items-center gap-2 py-2.5 px-5 rounded-xl shadow-sm">
             EN SAVOIR PLUS SUR LE CLUB <ChevronRight className="w-4 h-4" />
           </Link>
