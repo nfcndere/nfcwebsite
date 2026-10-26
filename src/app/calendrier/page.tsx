@@ -10,15 +10,17 @@ import { useApiResource } from '@/lib/use-api-resource';
 import { DataState } from '@/components/ui/DataState';
 import { getMatchState } from '@/lib/match-state';
 import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
-
-const WHATSAPP_BILLETTERIE = process.env.NEXT_PUBLIC_WHATSAPP_BILLETTERIE;
+import { useClubOverview } from '@/components/providers/ClubOverviewProvider';
+import { getWhatsAppNumber } from '@/lib/public-links';
 
 function MatchCard({
   match,
+  ticketingAvailable,
   onTicket,
   onResume,
 }: {
   match: MatchItem;
+  ticketingAvailable: boolean;
   onTicket: (m: MatchItem) => void;
   onResume: (m: MatchItem) => void;
 }) {
@@ -109,7 +111,7 @@ function MatchCard({
 
         {/* Right Column: CTA Action */}
         <div className="flex items-center justify-center lg:justify-end shrink-0 lg:w-1/4 mt-2 lg:mt-0">
-          {matchState === 'UPCOMING' && WHATSAPP_BILLETTERIE ? (
+          {matchState === 'UPCOMING' && ticketingAvailable ? (
             <button
               onClick={() => onTicket(match)}
               className="font-display font-extrabold text-xs text-[#008751] uppercase tracking-wider underline underline-offset-4 decoration-2 hover:text-[#005c37] transition-colors py-1 px-2"
@@ -139,11 +141,14 @@ export default function CalendrierPage() {
   const [selectedMatch, setSelectedMatch] = useState<MatchItem | null>(null);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [isResumeModalOpen, setIsResumeModalOpen] = useState(false);
+  const { data: clubOverview } = useClubOverview();
+  const whatsappBilletterie = getWhatsAppNumber(
+    clubOverview?.settings.whatsappBilletterie || process.env.NEXT_PUBLIC_WHATSAPP_BILLETTERIE,
+  );
 
   const [ticketForm, setTicketForm] = useState({
     nomComplet: '',
     telephone: '',
-    tribune: 'Tribune Populaire (1 000 FCFA)',
     nbPlaces: '1',
   });
 
@@ -162,13 +167,13 @@ export default function CalendrierPage() {
       `🏟 ${selectedMatch.homeTeam} vs ${selectedMatch.awayTeam}\n` +
       `📅 ${new Date(selectedMatch.date).toLocaleString('fr-FR')}\n` +
       `📍 ${selectedMatch.stadium}\n` +
-      `🪑 Tribune : ${ticketForm.tribune}\n\n` +
+      '\n' +
       `Nom : ${ticketForm.nomComplet}\n` +
       `Téléphone : ${ticketForm.telephone}`
     );
 
-    if (!WHATSAPP_BILLETTERIE) return;
-    window.open(`https://wa.me/${WHATSAPP_BILLETTERIE}?text=${message}`, '_blank');
+    if (!whatsappBilletterie) return;
+    window.open(`https://wa.me/${whatsappBilletterie}?text=${message}`, '_blank');
     setIsTicketModalOpen(false);
   };
 
@@ -217,6 +222,7 @@ export default function CalendrierPage() {
                   <MatchCard
                     key={match.id}
                     match={match}
+                    ticketingAvailable={Boolean(whatsappBilletterie)}
                     onTicket={(m) => { setSelectedMatch(m); setIsTicketModalOpen(true); }}
                     onResume={(m) => { setSelectedMatch(m); setIsResumeModalOpen(true); }}
                   />
@@ -227,7 +233,7 @@ export default function CalendrierPage() {
         </div>
 
         {/* INFOS BILLETTERIE */}
-        {WHATSAPP_BILLETTERIE && (
+        {whatsappBilletterie && (
         <div className="bg-[#0c130e] text-white p-4 sm:p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#008751]/20 flex items-center justify-center rounded-xl shrink-0">
@@ -239,7 +245,7 @@ export default function CalendrierPage() {
             </div>
           </div>
           <a
-            href={`https://wa.me/${WHATSAPP_BILLETTERIE}`}
+            href={`https://wa.me/${whatsappBilletterie}`}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-yellow text-xs shrink-0 flex items-center gap-2 py-2.5 px-4"
@@ -317,19 +323,6 @@ export default function CalendrierPage() {
                     ))}
                   </select>
                 </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700 uppercase font-display">Tribune *</label>
-                <select
-                  className="form-input text-xs"
-                  value={ticketForm.tribune}
-                  onChange={(e) => setTicketForm((p) => ({ ...p, tribune: e.target.value }))}
-                >
-                  <option>Tribune Populaire</option>
-                  <option>Tribune Couverte</option>
-                  <option>Tribune VIP</option>
-                </select>
               </div>
 
               <button

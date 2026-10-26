@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ApiStatus } from '@/lib/use-api-resource';
+import { getResourceView } from '@/lib/resource-state';
 
 export function DataState({
   status,
@@ -18,8 +19,16 @@ export function DataState({
   onRetry?: () => void;
   updatedAt?: string | null;
 }) {
-  if (status === 'loading') return <>{skeleton ?? <p role="status">Chargement…</p>}</>;
-  if (status === 'error') {
+  const view = getResourceView(status);
+  if (view === 'skeleton') {
+    return skeleton ? (
+      <div role="status" aria-live="polite">
+        <span className="sr-only">Chargement des données…</span>
+        <span aria-hidden="true">{skeleton}</span>
+      </div>
+    ) : <p role="status" aria-live="polite">Chargement…</p>;
+  }
+  if (view === 'error') {
     return (
       <div role="alert" aria-live="polite" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
         <p>{error || 'Impossible de charger les données. Vérifiez votre connexion.'}</p>
@@ -27,7 +36,7 @@ export function DataState({
       </div>
     );
   }
-  if (status === 'empty') return <p role="status" aria-live="polite" className="py-6 text-center text-sm text-gray-600">{emptyMessage}</p>;
+  if (view === 'empty') return <p role="status" aria-live="polite" className="py-6 text-center text-sm text-gray-600">{emptyMessage}</p>;
 
   return (
     <>

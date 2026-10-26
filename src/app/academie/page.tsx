@@ -20,7 +20,7 @@ export default function AcademiePage() {
     nomJoueur: '',
     prenomJoueur: '',
     dateNaissance: '',
-    categorie: 'U13',
+    categorie: '',
     poste: 'Gardien de But',
     nomTuteur: '',
     telephone: '',
@@ -236,13 +236,8 @@ export default function AcademiePage() {
                     <input name="dateNaissance" type="date" required className="form-input rounded-xl" value={formData.dateNaissance} onChange={handleChange} />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-700 uppercase font-display">Catégorie *</label>
-                    <select name="categorie" className="form-input rounded-xl" value={formData.categorie} onChange={handleChange}>
-                      <option>U13 (2013-2014)</option>
-                      <option>U15 (2011-2012)</option>
-                      <option>U17 (2009-2010)</option>
-                      <option>U20 (2006-2008)</option>
-                    </select>
+                    <label className="text-xs font-bold text-gray-700 uppercase font-display">Catégorie souhaitée</label>
+                    <input name="categorie" type="text" className="form-input rounded-xl" value={formData.categorie} onChange={handleChange} />
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-gray-700 uppercase font-display">Poste *</label>

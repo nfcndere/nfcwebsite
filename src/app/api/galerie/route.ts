@@ -5,6 +5,8 @@ import { apiError, resourceResponse, latestDate } from '@/lib/api-response';
 import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
 import { requireEditor } from '@/lib/server/auth';
 
+export const dynamic = 'force-dynamic';
+
 const mediaSchema = z.object({
   provider: z.string().optional(),
   publicId: z.string().min(1),
@@ -20,6 +22,13 @@ const mediaSchema = z.object({
   playerId: z.string().nullable().optional(),
   uploadedById: z.string().nullable().optional(),
 });
+const galleryQuerySchema = z.object({
+  album: z.string().trim().max(100).optional(),
+  playerId: z.string().trim().max(100).optional(),
+  type: z.enum(['IMAGE', 'VIDEO']).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(50),
+});
 
 // ===================================
 // GET /api/galerie — Récupérer les médias de la galerie
@@ -27,9 +36,15 @@ const mediaSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const album = searchParams.get('album');
-    const playerId = searchParams.get('playerId');
-    const type = searchParams.get('type'); // IMAGE ou VIDEO
+    const parsed = galleryQuerySchema.safeParse({
+      album: searchParams.get('album') ?? undefined,
+      playerId: searchParams.get('playerId') ?? undefined,
+      type: searchParams.get('type') ?? undefined,
+      page: searchParams.get('page') ?? undefined,
+      pageSize: searchParams.get('pageSize') ?? undefined,
+    });
+    if (!parsed.success) return apiError('Paramètres de recherche invalides.', 400);
+    const { album, playerId, type, page, pageSize } = parsed.data;
 
     const where: any = {};
     if (album && album !== 'TOUS') where.album = album;
@@ -39,6 +54,8 @@ export async function GET(request: NextRequest) {
     const medias = await prisma.media.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
       include: {
         player: { select: { id: true, firstName: true, lastName: true } },
       },

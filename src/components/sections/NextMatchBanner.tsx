@@ -9,18 +9,19 @@ import { DataState } from '@/components/ui/DataState';
 import { getMatchState } from '@/lib/match-state';
 
 export default function NextMatchBanner() {
-  const { data, status, error, retry, updatedAt } = useClubOverview();
-  const [now, setNow] = useState(() => new Date());
+  const { data, matchStatus: status, matchError: error, retry, matchUpdatedAt: updatedAt } = useClubOverview();
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
+    setNow(new Date());
     const id = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(id);
   }, []);
 
   const match = data?.liveMatch ?? data?.nextMatch ?? null;
-  const matchState = getMatchState(match, now);
+  const matchState = now ? getMatchState(match, now) : null;
   const matchDate = match ? new Date(match.date) : null;
-  const diff = matchDate && matchState === 'UPCOMING' ? matchDate.getTime() - now.getTime() : 0;
+  const diff = matchDate && now && matchState === 'UPCOMING' ? matchDate.getTime() - now.getTime() : 0;
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -97,7 +98,7 @@ export default function NextMatchBanner() {
                     ? <span className="ml-2 text-xl">{match.homeScore} – {match.awayScore}</span>
                     : <span className="text-xs font-semibold text-gray-700">Score indisponible, mise à jour en cours</span>}
                 </>
-              ) : matchState === 'UPCOMING' ? (
+              ) : matchState === 'UPCOMING' && now ? (
                 <>
                   <span className="text-xl sm:text-2xl">{days}</span>
                   <span className="text-[9px] font-medium uppercase text-gray-500 ml-0.5">j</span>

@@ -5,23 +5,44 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Shield, Mail, Send, CheckCircle2, X, MessageCircle, Handshake, Building2 } from 'lucide-react';
 import NewsGrid from '@/components/sections/NewsGrid';
-import Partners from '@/components/sections/Partners';
 import NextMatchBanner from '@/components/sections/NextMatchBanner';
 import StatsBar from '@/components/sections/StatsBar';
 import { SectionTag } from '@/components/ui/SectionTag';
 import { useClubOverview } from '@/components/providers/ClubOverviewProvider';
 import { getGoalDifferenceLabel, getOrdinalFr } from '@/lib/match-state';
 import { DataState } from '@/components/ui/DataState';
+import { getWhatsAppNumber } from '@/lib/public-links';
 
-// Numéro WhatsApp partenariat
-const WHATSAPP_PARTENAIRE = '691616959';
+function HomeStandingsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-12" aria-hidden="true">
+      <div className="h-64 animate-pulse rounded-2xl bg-white lg:col-span-4" />
+      <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-8">
+        <div className="mb-4 h-5 animate-pulse rounded bg-gray-100" />
+        <table className="w-full">
+          <tbody>
+            {Array.from({ length: 8 }, (_, index) => (
+              <tr key={index} className="border-b border-gray-100">
+                {Array.from({ length: 5 }, (_, cell) => (
+                  <td key={cell} className="py-3">
+                    <span className="mx-auto block h-3 w-10 animate-pulse rounded bg-gray-100" />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const overview = useClubOverview();
-  const standings = overview.data?.standings ?? [];
-  const nfcStanding = standings.find((standing) => standing.teamName === 'Ngaoundéré FC');
+  const nfcStanding = overview.data?.nfc ?? null;
   const [email, setEmail] = useState('');
   const [newsletterSent, setNewsletterSent] = useState(false);
+  const [newsletterMessage, setNewsletterMessage] = useState('');
   const [newsletterLoading, setNewsletterLoading] = useState(false);
   const [isPartenaireModalOpen, setIsPartenaireModalOpen] = useState(false);
 
@@ -46,8 +67,10 @@ export default function HomePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-      if (!response.ok) throw new Error('Inscription impossible pour le moment.');
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Inscription impossible pour le moment.');
       setNewsletterSent(true);
+      setNewsletterMessage(result.message || 'Votre inscription à la newsletter est prise en compte.');
       setEmail('');
       window.setTimeout(() => setNewsletterSent(false), 5000);
     } catch {
@@ -69,7 +92,9 @@ export default function HomePage() {
       `🤝 Type de partenariat : ${partenaireForm.typePartenariat}\n\n` +
       `📝 Message : ${partenaireForm.message || 'Pas de message supplémentaire.'}`
     );
-    window.open(`https://wa.me/${WHATSAPP_PARTENAIRE}?text=${message}`, '_blank');
+    const whatsapp = getWhatsAppNumber(overview.data?.settings.whatsappPartenaire || process.env.NEXT_PUBLIC_WHATSAPP_PARTENAIRE);
+    if (!whatsapp) return;
+    window.open(`https://wa.me/${whatsapp}?text=${message}`, '_blank');
     setIsPartenaireModalOpen(false);
   };
 
@@ -139,11 +164,10 @@ export default function HomePage() {
           onRetry={overview.retry}
           updatedAt={overview.updatedAt}
           emptyMessage="Le classement n'est pas encore disponible."
-          skeleton={<div className="h-56 animate-pulse rounded-2xl bg-white" />}
+          skeleton={<HomeStandingsSkeleton />}
         >
-          {standings.length > 0 ? (
+          {nfcStanding ? (
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-              {nfcStanding && (
                 <div className="flex flex-col justify-between rounded-2xl border border-gray-100 bg-white p-7 shadow-sm lg:col-span-4">
                   <div>
                     <span className="block text-xs font-bold uppercase text-gray-500">COMPÉTITION OFFICIELLE</span>
@@ -162,17 +186,23 @@ export default function HomePage() {
                   </div>
                   <Link href="/classement" className="btn-dark block w-full py-3 text-center text-xs">VOIR LE CLASSEMENT INTÉGRAL →</Link>
                 </div>
-              )}
-              <div className={`rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ${nfcStanding ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
+              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-8">
                 <h3 className="mb-4 border-b border-gray-100 pb-3 font-display text-sm font-bold uppercase text-gray-900">CLASSEMENT OFFICIEL</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead><tr className="border-b border-gray-200 text-gray-500"><th className="py-2">#</th><th>Équipe</th><th className="text-center">J</th><th className="text-center">Diff.</th><th className="text-center">Pts</th></tr></thead>
                     <tbody className="divide-y divide-gray-100">
-                      {standings.slice(0, 8).map((row) => (
-                        <tr key={row.teamId} className={row.teamName === 'Ngaoundéré FC' ? 'bg-[#008751]/10 font-bold text-[#008751]' : ''}>
-                          <td className="py-3">{row.rank}</td><td>{row.teamName}</td><td className="text-center">{row.played}</td>
-                          <td className="text-center">{getGoalDifferenceLabel(row.goalDifference)}</td><td className="text-center">{row.points}</td>
+                      <tr className="bg-[#008751]/10 font-bold text-[#008751]">
+                        <td className="py-3">{nfcStanding.rank}</td><td>{nfcStanding.teamName}</td><td className="text-center">{nfcStanding.played}</td>
+                        <td className="text-center">{getGoalDifferenceLabel(nfcStanding.goalDifference)}</td><td className="text-center">{nfcStanding.points}</td>
+                      </tr>
+                      {Array.from({ length: 7 }, (_, index) => (
+                        <tr key={`placeholder-${index}`} aria-hidden="true" className="text-gray-300">
+                          <td className="py-3"><span className="block h-3 w-5 rounded bg-gray-100" /></td>
+                          <td><span className="block h-3 w-28 rounded bg-gray-100" /></td>
+                          <td className="text-center"><span className="mx-auto block h-3 w-5 rounded bg-gray-100" /></td>
+                          <td className="text-center"><span className="mx-auto block h-3 w-7 rounded bg-gray-100" /></td>
+                          <td className="text-center"><span className="mx-auto block h-3 w-7 rounded bg-gray-100" /></td>
                         </tr>
                       ))}
                     </tbody>
@@ -181,7 +211,7 @@ export default function HomePage() {
               </div>
             </div>
           ) : (
-            <p role="status" className="rounded-xl bg-white p-6 text-center text-sm text-gray-600">Le classement n'est pas encore disponible.</p>
+            <p role="status" className="rounded-xl bg-white p-6 text-center text-sm text-gray-600">Les statistiques du NFC pour cette saison seront publiées prochainement.</p>
           )}
         </DataState>
       </section>
@@ -258,7 +288,7 @@ export default function HomePage() {
               {newsletterSent ? (
                 <div className="inline-flex items-center gap-2 bg-[#0c130e]/90 text-[color:var(--nfc-yellow)] border border-emerald-500/30 px-4 py-3 text-xs font-bold rounded-xl w-full">
                   <CheckCircle2 className="w-4 h-4 text-[color:var(--nfc-yellow)] shrink-0" />
-                  <span>Votre inscription à la newsletter a été enregistrée avec succès !</span>
+                  <span>{newsletterMessage}</span>
                 </div>
               ) : (
                 <form onSubmit={handleNewsletter} className="flex flex-col sm:flex-row gap-2.5">
@@ -319,12 +349,16 @@ export default function HomePage() {
 
             <div className="mt-6 pt-2">
               <button
+                disabled={!getWhatsAppNumber(overview.data?.settings.whatsappPartenaire || process.env.NEXT_PUBLIC_WHATSAPP_PARTENAIRE)}
                 onClick={() => setIsPartenaireModalOpen(true)}
-                className="w-full bg-[#008751] hover:bg-[#006e42] text-white font-display font-extrabold text-xs px-6 py-3.5 rounded-xl uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center gap-2"
+                className="w-full bg-[#008751] hover:bg-[#006e42] disabled:cursor-not-allowed disabled:opacity-50 text-white font-display font-extrabold text-xs px-6 py-3.5 rounded-xl uppercase tracking-wider transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center gap-2"
               >
                 <Handshake className="w-4 h-4" />
                 <span>DEVENIR PARTENAIRE DU CLUB &rarr;</span>
               </button>
+              {!getWhatsAppNumber(overview.data?.settings.whatsappPartenaire || process.env.NEXT_PUBLIC_WHATSAPP_PARTENAIRE) && (
+                <p className="mt-2 text-center text-xs text-white/80">Les coordonnées du service partenariats seront publiées prochainement.</p>
+              )}
             </div>
           </div>
 

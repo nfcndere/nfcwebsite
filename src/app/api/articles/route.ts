@@ -5,6 +5,8 @@ import { apiError, resourceResponse, latestDate } from '@/lib/api-response';
 import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
 import { requireEditor } from '@/lib/server/auth';
 
+export const dynamic = 'force-dynamic';
+
 const articleSchema = z.object({
   slug: z.string().trim().min(1),
   title: z.string().trim().min(1),
@@ -16,6 +18,11 @@ const articleSchema = z.object({
   authorId: z.string().nullable().optional(),
   published: z.boolean().optional(),
 });
+const articlesQuerySchema = z.object({
+  category: z.string().trim().max(80).optional(),
+  slug: z.string().trim().max(180).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
 
 // ===================================
 // GET /api/articles — Récupérer les articles publiés
@@ -23,10 +30,13 @@ const articleSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category');
-    const slug = searchParams.get('slug');
-    const limitParam = Number(searchParams.get('limit') || 20);
-    const limit = Number.isInteger(limitParam) ? Math.min(Math.max(limitParam, 1), 100) : 20;
+    const parsed = articlesQuerySchema.safeParse({
+      category: searchParams.get('category') ?? undefined,
+      slug: searchParams.get('slug') ?? undefined,
+      limit: searchParams.get('limit') ?? undefined,
+    });
+    if (!parsed.success) return apiError('Paramètres de recherche invalides.', 400);
+    const { category, slug, limit } = parsed.data;
 
     const where: any = { published: true };
     if (category && category !== 'TOUS') where.category = category;

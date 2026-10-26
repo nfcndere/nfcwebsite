@@ -5,6 +5,8 @@ import { apiError, resourceResponse, latestDate } from '@/lib/api-response';
 import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
 import { requireEditor } from '@/lib/server/auth';
 
+export const dynamic = 'force-dynamic';
+
 const playerSchema = z.object({
   firstName: z.string().trim().min(1),
   lastName: z.string().trim().min(1),

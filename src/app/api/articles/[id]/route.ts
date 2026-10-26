@@ -5,6 +5,8 @@ import { apiError, resourceResponse } from '@/lib/api-response';
 import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
 import { requireEditor } from '@/lib/server/auth';
 
+export const dynamic = 'force-dynamic';
+
 const articlePatchSchema = z.object({
   title: z.string().trim().min(1).optional(),
   slug: z.string().trim().min(1).optional(),

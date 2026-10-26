@@ -3,8 +3,13 @@ import prisma from '@/lib/prisma';
 import { z } from 'zod';
 import { apiError, resourceResponse, latestDate } from '@/lib/api-response';
 import { requireEditor } from '@/lib/server/auth';
+import { enforceRateLimit, getClientIp } from '@/lib/server/rate-limit';
 
-const subscriberSchema = z.object({ email: z.string().trim().email().transform((email) => email.toLowerCase()) });
+export const dynamic = 'force-dynamic';
+
+const subscriberSchema = z.object({
+  email: z.string().trim().email().max(254).transform((email) => email.toLowerCase()),
+});
 
 // ===================================
 // POST /api/newsletter — Sauvegarder un email en base
@@ -14,15 +19,22 @@ export async function POST(request: NextRequest) {
     const parsed = subscriberSchema.safeParse(await request.json());
     if (!parsed.success) return apiError('Adresse email invalide.', 400);
     const { email } = parsed.data;
+    const limited = await enforceRateLimit(request, 'newsletter', 5, 60 * 60 * 1_000);
+    if (limited) return limited;
 
     // Upsert pour éviter les doublons
     const subscriber = await prisma.newsletterSubscriber.upsert({
       where: { email },
-      update: { active: true },
-      create: { email },
+      update: { active: true, ip: getClientIp(request) },
+      create: { email, ip: getClientIp(request) },
     });
 
-    return NextResponse.json({ status: 'ok', message: 'Abonnement enregistré avec succès', data: subscriber, updatedAt: subscriber.createdAt });
+    return NextResponse.json({
+      status: 'ok',
+      message: 'Votre inscription à la newsletter est prise en compte.',
+      data: { subscribed: true },
+      updatedAt: subscriber.createdAt,
+    });
   } catch (error) {
     console.error('Failed to subscribe to newsletter:', error);
     return apiError('Impossible d’enregistrer l’inscription.');

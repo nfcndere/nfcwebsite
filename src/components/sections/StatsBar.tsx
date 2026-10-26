@@ -1,13 +1,12 @@
 'use client';
 
-import Link from 'next/link';
 import { useClubOverview } from '@/components/providers/ClubOverviewProvider';
 import { DataState } from '@/components/ui/DataState';
 import { getGoalDifferenceLabel, getOrdinalFr } from '@/lib/match-state';
 
 export default function StatsBar() {
   const { data, status, error, retry, updatedAt } = useClubOverview();
-  const nfc = data?.standings.find((standing) => standing.teamName === 'Ngaoundéré FC');
+  const nfc = data?.nfc;
 
   return (
     <section className="relative z-20 -mt-8 sm:-mt-12 lg:-mt-16">
@@ -18,7 +17,7 @@ export default function StatsBar() {
             error={error}
             onRetry={retry}
             updatedAt={updatedAt}
-            emptyMessage="Le classement et les prochains matchs ne sont pas encore disponibles."
+            emptyMessage="Les statistiques du NFC pour cette saison seront publiées prochainement."
             skeleton={<div className="h-24 animate-pulse rounded-lg bg-gray-100" />}
           >
             {nfc ? (
@@ -37,22 +36,9 @@ export default function StatsBar() {
                 </div>
               </div>
             ) : (
-              <p className="text-center text-sm text-gray-600">Le classement du club n’est pas encore publié.</p>
+              <p role="status" className="text-center text-sm text-gray-600">Les statistiques du NFC pour cette saison seront publiées prochainement.</p>
             )}
-            <div className="mt-5 border-t border-gray-100 pt-4 text-center">
-              {data?.nextMatch ? (
-                <p className="text-sm font-semibold text-gray-800">
-                  Prochain match : {data.nextMatch.homeTeam} – {data.nextMatch.awayTeam}
-                  {' · '}
-                  {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Douala' }).format(new Date(data.nextMatch.date))}
-                </p>
-              ) : (
-                <p className="text-sm text-gray-600">Aucun match programmé pour le moment.</p>
-              )}
-              <Link href="/calendrier" className="mt-2 inline-block text-xs font-bold text-[#008751] underline">
-                Consulter le calendrier
-              </Link>
-            </div>
+            {nfc?.form && <p className="mt-3 text-center text-xs text-gray-600">Forme récente : {nfc.form}</p>}
           </DataState>
         </div>
       </div>

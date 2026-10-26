@@ -4,11 +4,15 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowUpRight, CheckCircle2, Facebook, Mail } from 'lucide-react';
+import { useClubOverview } from '@/components/providers/ClubOverviewProvider';
+import { getSafeExternalUrl } from '@/lib/public-links';
 
 export default function Footer() {
+  const { data } = useClubOverview();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterState, setNewsletterState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [newsletterMessage, setNewsletterMessage] = useState('');
+  const facebookUrl = getSafeExternalUrl(data?.settings.facebookUrl || process.env.NEXT_PUBLIC_FACEBOOK_URL);
 
   const handleNewsletterSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -37,7 +41,6 @@ export default function Footer() {
       { label: 'Présentation', href: '/le-club' },
       { label: 'Effectif', href: '/effectif' },
       { label: 'Académie', href: '/academie' },
-      { label: 'Histoire du club', href: '/le-club' },
     ],
     competitions: [
       { label: 'Calendrier', href: '/calendrier' },
@@ -45,7 +48,6 @@ export default function Footer() {
     ],
     media: [
       { label: 'Actualités', href: '/actualites' },
-      { label: 'Galerie photos', href: '/galerie' },
       { label: 'Photos & vidéos', href: '/galerie' },
       { label: 'Newsletter', href: '#newsletter' },
     ],
@@ -137,13 +139,13 @@ export default function Footer() {
             )}
           </div>
 
-          {process.env.NEXT_PUBLIC_FACEBOOK_URL && <div className="lg:col-span-3">
+          {facebookUrl && <div className="lg:col-span-3">
             <div className="text-[11px] font-display font-bold uppercase tracking-[0.25em] text-[color:var(--nfc-yellow)]">
               Suivez-nous
             </div>
 
             <a
-              href={process.env.NEXT_PUBLIC_FACEBOOK_URL}
+              href={facebookUrl}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Suivez le NFC sur Facebook"
