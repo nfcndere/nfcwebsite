@@ -1,6 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
+import { NOT_DELETED } from '@/lib/soft-delete';
 import { NewsArticle } from '@/components/news/NewsArticle';
 
 interface PageProps {
@@ -9,7 +10,7 @@ interface PageProps {
 
 export default async function ArticlePage({ params }: PageProps) {
   const found = await prisma.article.findFirst({
-    where: { OR: [{ slug: params.slug }, { id: params.slug }], published: true },
+    where: { OR: [{ slug: params.slug }, { id: params.slug }], published: true, ...NOT_DELETED },
     include: { cover: true, author: { select: { name: true } } },
   });
   if (!found) notFound();

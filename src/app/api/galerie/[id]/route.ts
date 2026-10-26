@@ -4,14 +4,16 @@ import { destroyFromCloudinary } from '@/lib/server/cloudinary';
 import { z } from 'zod';
 import { apiError, resourceResponse } from '@/lib/api-response';
 import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
-import { requireEditor } from '@/lib/server/auth';
+import { authorize } from '@/lib/server/auth';
+import { recordAudit } from '@/lib/server/audit';
+import { handleRouteError, parseJsonBody } from '@/lib/server/route-utils';
 
 export const dynamic = 'force-dynamic';
 
 const mediaPatchSchema = z.object({
-  title: z.string().nullable().optional(),
-  altText: z.string().nullable().optional(),
-  album: z.string().nullable().optional(),
+  title: z.string().max(160).nullable().optional(),
+  altText: z.string().max(300).nullable().optional(),
+  album: z.string().max(100).nullable().optional(),
   mediaType: z.enum(['IMAGE', 'VIDEO']).nullable().optional(),
   playerId: z.string().nullable().optional(),
 });
@@ -34,9 +36,8 @@ export async function GET(
     }
 
     return resourceResponse(media, media.createdAt, DATA_FRESHNESS_MS.media);
-  } catch (error: any) {
-    console.error('Failed to retrieve gallery media:', error);
-    return apiError('Impossible de récupérer le média.');
+  } catch (error: unknown) {
+    return handleRouteError(error, 'Impossible de récupérer le média.', 'galerie/[id]:get');
   }
 }
 
@@ -47,14 +48,17 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const denied = await requireEditor(request);
-  if (denied) return denied;
+  const auth = await authorize(request);
+  if (!auth.ok) return auth.response;
   try {
-    const parsed = mediaPatchSchema.safeParse(await request.json());
-    if (!parsed.success) return apiError('Données de média invalides.', 400);
+    const parsed = await parseJsonBody(request, mediaPatchSchema, 'Données de média invalides.');
+    if (!parsed.ok) return parsed.response;
     const body = parsed.data;
 
-    const dataToUpdate: any = {};
+    const existing = await prisma.media.findUnique({ where: { id: params.id } });
+    if (!existing) return apiError('Média non trouvé.', 404);
+
+    const dataToUpdate: Record<string, unknown> = {};
     if (body.title !== undefined) dataToUpdate.title = body.title;
     if (body.altText !== undefined) dataToUpdate.altText = body.altText;
     if (body.album !== undefined) dataToUpdate.album = body.album;
@@ -65,43 +69,62 @@ export async function PATCH(
       where: { id: params.id },
       data: dataToUpdate,
     });
+    await recordAudit({
+      request,
+      userId: auth.user.id,
+      action: 'UPDATE',
+      entity: 'Media',
+      entityId: updated.id,
+      before: existing,
+      after: updated,
+    });
 
     return resourceResponse(updated, updated.createdAt);
-  } catch (error: any) {
-    console.error('Failed to update gallery media:', error);
-    return apiError('Impossible de modifier le média.');
+  } catch (error: unknown) {
+    return handleRouteError(error, 'Impossible de modifier le média.', 'galerie/[id]:patch');
   }
 }
 
 // ===================================
-// DELETE /api/galerie/[id] — Supprimer un média de la galerie
+// DELETE /api/galerie/[id] — Supprimer un média de la galerie et l'asset Cloudinary (best effort)
 // ===================================
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const denied = await requireEditor(request);
-  if (denied) return denied;
+  const auth = await authorize(request);
+  if (!auth.ok) return auth.response;
   try {
     const media = await prisma.media.findUnique({ where: { id: params.id } });
     if (!media) {
       return apiError('Média introuvable.', 404);
     }
 
-    // Si hébergé sur Cloudinary, détruire l'asset distant
+    let cloudinaryResult: string | null = null;
     if (media.provider === 'cloudinary' && media.publicId) {
+      const resourceType = media.mediaType === 'VIDEO' || media.mimeType?.startsWith('video/') ? 'video' : 'image';
       try {
-        await destroyFromCloudinary(media.publicId);
+        const res = await destroyFromCloudinary(media.publicId, resourceType);
+        cloudinaryResult = res?.result ?? 'ok';
       } catch (err) {
-        console.warn('Erreur lors de la suppression Cloudinary:', err);
+        cloudinaryResult = 'failed';
+        console.warn(`[galerie/delete] Suppression Cloudinary best-effort échouée pour ${media.publicId} :`, err);
       }
     }
 
     await prisma.media.delete({ where: { id: params.id } });
+    await recordAudit({
+      request,
+      userId: auth.user.id,
+      action: 'DELETE',
+      entity: 'Media',
+      entityId: media.id,
+      before: media,
+      after: { cloudinaryResult },
+    });
 
-    return resourceResponse({ id: params.id, deleted: true }, new Date());
-  } catch (error: any) {
-    console.error('Failed to delete gallery media:', error);
-    return apiError('Impossible de supprimer le média.');
+    return resourceResponse({ id: params.id, deleted: true, cloudinaryResult }, new Date());
+  } catch (error: unknown) {
+    return handleRouteError(error, 'Impossible de supprimer le média.', 'galerie/[id]:delete');
   }
 }

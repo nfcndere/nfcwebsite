@@ -3,32 +3,36 @@ import prisma from '@/lib/prisma';
 import { z } from 'zod';
 import { apiError, resourceResponse } from '@/lib/api-response';
 import { DATA_FRESHNESS_MS } from '@/constants/data-freshness';
-import { requireEditor } from '@/lib/server/auth';
+import { authorize } from '@/lib/server/auth';
+import { recordAudit } from '@/lib/server/audit';
+import { handleRouteError, parseJsonBody } from '@/lib/server/route-utils';
+import { NOT_DELETED } from '@/lib/soft-delete';
 
 export const dynamic = 'force-dynamic';
 
 const matchPatchSchema = z.object({
-  homeTeam: z.string().trim().min(1).optional(),
-  awayTeam: z.string().trim().min(1).optional(),
+  homeTeam: z.string().trim().min(1).max(120).optional(),
+  awayTeam: z.string().trim().min(1).max(120).optional(),
   homeScore: z.coerce.number().int().min(0).nullable().optional(),
   awayScore: z.coerce.number().int().min(0).nullable().optional(),
   date: z.string().datetime({ offset: true }).optional(),
-  stadium: z.string().trim().nullable().optional(),
-  competition: z.string().trim().nullable().optional(),
+  stadium: z.string().trim().max(160).nullable().optional(),
+  competition: z.string().trim().max(120).nullable().optional(),
   status: z.enum(['PROGRAMME', 'EN_COURS', 'TERMINE', 'REPORTE', 'ANNULE']).optional(),
-  summary: z.string().nullable().optional(),
+  summary: z.string().max(4_000).nullable().optional(),
+  restore: z.boolean().optional(),
 });
 
 // ===================================
-// GET /api/matches/[id] — Récupérer un match par ID
+// GET /api/matches/[id] — Récupérer un match par ID (non supprimé)
 // ===================================
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const match = await prisma.match.findUnique({
-      where: { id: params.id },
+    const match = await prisma.match.findFirst({
+      where: { id: params.id, ...NOT_DELETED },
     });
 
     if (!match) {
@@ -36,9 +40,8 @@ export async function GET(
     }
 
     return resourceResponse(match, match.updatedAt, match.status === 'EN_COURS' ? DATA_FRESHNESS_MS.liveMatch : DATA_FRESHNESS_MS.matches);
-  } catch (error: any) {
-    console.error('Failed to retrieve match:', error);
-    return apiError('Impossible de récupérer le match.');
+  } catch (error: unknown) {
+    return handleRouteError(error, 'Impossible de récupérer le match.', 'matches/[id]:get');
   }
 }
 
@@ -49,14 +52,19 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const denied = await requireEditor(request);
-  if (denied) return denied;
+  const auth = await authorize(request);
+  if (!auth.ok) return auth.response;
   try {
-    const parsed = matchPatchSchema.safeParse(await request.json());
-    if (!parsed.success) return apiError('Données de match invalides.', 400);
+    const parsed = await parseJsonBody(request, matchPatchSchema, 'Données de match invalides.');
+    if (!parsed.ok) return parsed.response;
     const body = parsed.data;
 
-    const dataToUpdate: any = {};
+    const existing = await prisma.match.findFirst({
+      where: { id: params.id, ...(body.restore ? {} : NOT_DELETED) },
+    });
+    if (!existing) return apiError('Match non trouvé.', 404);
+
+    const dataToUpdate: Record<string, unknown> = {};
     if (body.homeTeam !== undefined) dataToUpdate.homeTeam = body.homeTeam;
     if (body.awayTeam !== undefined) dataToUpdate.awayTeam = body.awayTeam;
     if (body.homeScore !== undefined) dataToUpdate.homeScore = body.homeScore !== null ? Number(body.homeScore) : null;
@@ -66,36 +74,58 @@ export async function PATCH(
     if (body.competition !== undefined) dataToUpdate.competition = body.competition;
     if (body.status !== undefined) dataToUpdate.status = body.status;
     if (body.summary !== undefined) dataToUpdate.summary = body.summary;
+    if (body.restore === true) dataToUpdate.deletedAt = null;
 
     const updated = await prisma.match.update({
       where: { id: params.id },
       data: dataToUpdate,
     });
+    await recordAudit({
+      request,
+      userId: auth.user.id,
+      action: body.restore ? 'RESTORE' : 'UPDATE',
+      entity: 'Match',
+      entityId: updated.id,
+      before: existing,
+      after: updated,
+    });
 
     return resourceResponse(updated, updated.updatedAt);
-  } catch (error: any) {
-    console.error('Failed to update match:', error);
-    return apiError('Impossible de modifier le match.');
+  } catch (error: unknown) {
+    return handleRouteError(error, 'Impossible de modifier le match.', 'matches/[id]:patch');
   }
 }
 
 // ===================================
-// DELETE /api/matches/[id] — Supprimer un match
+// DELETE /api/matches/[id] — Suppression logique d'un match
 // ===================================
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const denied = await requireEditor(request);
-  if (denied) return denied;
+  const auth = await authorize(request);
+  if (!auth.ok) return auth.response;
   try {
-    await prisma.match.delete({
+    const existing = await prisma.match.findFirst({ where: { id: params.id, ...NOT_DELETED } });
+    if (!existing) return apiError('Match non trouvé.', 404);
+
+    const deletedAt = new Date();
+    const updated = await prisma.match.update({
       where: { id: params.id },
+      data: { deletedAt },
+    });
+    await recordAudit({
+      request,
+      userId: auth.user.id,
+      action: 'SOFT_DELETE',
+      entity: 'Match',
+      entityId: updated.id,
+      before: existing,
+      after: updated,
     });
 
-    return resourceResponse({ id: params.id, deleted: true }, new Date());
-  } catch (error: any) {
-    console.error('Failed to delete match:', error);
-    return apiError('Impossible de supprimer le match.');
+    return resourceResponse({ id: params.id, deleted: true, deletedAt: deletedAt.toISOString() }, deletedAt);
+  } catch (error: unknown) {
+    return handleRouteError(error, 'Impossible de supprimer le match.', 'matches/[id]:delete');
   }
 }

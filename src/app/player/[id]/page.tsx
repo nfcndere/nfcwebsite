@@ -1,12 +1,13 @@
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
+import { NOT_DELETED } from '@/lib/soft-delete';
 import { PlayerDetail } from '@/components/player/PlayerDetail';
 import type { Player } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
 export default async function PlayerPage({ params }: { params: { id: string } }) {
-  const playerRecord = await prisma.player.findUnique({ where: { id: params.id } });
+  const playerRecord = await prisma.player.findFirst({ where: { id: params.id, ...NOT_DELETED } });
   if (!playerRecord) notFound();
   const stats = playerRecord.stats && typeof playerRecord.stats === 'object' && !Array.isArray(playerRecord.stats)
     ? playerRecord.stats as Record<string, unknown>

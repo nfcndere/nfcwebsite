@@ -1,12 +1,13 @@
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
+import { NOT_DELETED } from '@/lib/soft-delete';
 import { MatchDetail } from '@/components/match/MatchDetail';
 import type { MatchItem } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
 export default async function MatchPage({ params }: { params: { id: string } }) {
-  const record = await prisma.match.findUnique({ where: { id: params.id } });
+  const record = await prisma.match.findFirst({ where: { id: params.id, ...NOT_DELETED } });
   if (!record) notFound();
   const match: MatchItem = {
     id: record.id,

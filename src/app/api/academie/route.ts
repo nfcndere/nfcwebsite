@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 import { apiError, resourceResponse, latestDate } from '@/lib/api-response';
-import { requireEditor } from '@/lib/server/auth';
+import { authorize } from '@/lib/server/auth';
 import { enforceRateLimit, getClientIp } from '@/lib/server/rate-limit';
+import { handleRouteError, parseJsonBody } from '@/lib/server/route-utils';
+import { notifyAdmins } from '@/lib/server/push';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,16 +29,16 @@ const applicationSchema = z.object({
 // ===================================
 export async function POST(request: NextRequest) {
   try {
-    const parsed = applicationSchema.safeParse(await request.json());
-    if (!parsed.success) return apiError('Champs obligatoires manquants ou invalides.', 400);
+    const parsed = await parseJsonBody(request, applicationSchema, 'Champs obligatoires manquants ou invalides.');
+    if (!parsed.ok) return parsed.response;
     const body = parsed.data;
     const limited = await enforceRateLimit(request, 'academy-application', 5, 60 * 60 * 1_000);
     if (limited) return limited;
 
-    // Sauvegarde en BD via FormSubmission
     const submission = await prisma.formSubmission.create({
       data: {
         type: 'ACADEMIE',
+        followUpStatus: 'NOUVEAU',
         payload: {
           nomJoueur: body.nomJoueur,
           prenomJoueur: body.prenomJoueur,
@@ -53,14 +55,20 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    await notifyAdmins({
+      title: 'Nouvelle inscription Académie NFC',
+      body: `${body.prenomJoueur} ${body.nomJoueur}${body.categorie ? ` (${body.categorie})` : ''}`,
+      url: '/dashboard',
+      tag: `academie-${submission.id}`,
+    });
+
     return NextResponse.json({
       success: true,
       message: 'Candidature enregistrée. Vous serez contacté ultérieurement par notre service de détection.',
       submissionId: submission.id,
     });
   } catch (error) {
-    console.error('Failed to create academy application:', error);
-    return apiError('Impossible d’enregistrer la candidature.');
+    return handleRouteError(error, 'Impossible d’enregistrer la candidature.', 'academie:post');
   }
 }
 
@@ -68,16 +76,15 @@ export async function POST(request: NextRequest) {
 // GET /api/academie — Récupérer les candidatures (admin)
 // ===================================
 export async function GET(request: NextRequest) {
-  const denied = await requireEditor(request);
-  if (denied) return denied;
+  const auth = await authorize(request);
+  if (!auth.ok) return auth.response;
   try {
     const submissions = await prisma.formSubmission.findMany({
       where: { type: 'ACADEMIE' },
       orderBy: { createdAt: 'desc' },
     });
-    return resourceResponse(submissions, latestDate(submissions, (submission) => submission.createdAt));
+    return resourceResponse(submissions, latestDate(submissions, (submission) => submission.updatedAt ?? submission.createdAt));
   } catch (error) {
-    console.error('Failed to retrieve academy applications:', error);
-    return apiError('Impossible de récupérer les candidatures.');
+    return handleRouteError(error, 'Impossible de récupérer les candidatures.', 'academie:get');
   }
 }

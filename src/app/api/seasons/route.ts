@@ -2,7 +2,9 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { apiError, resourceResponse, latestDate } from '@/lib/api-response';
-import { requireEditor } from '@/lib/server/auth';
+import { authorize } from '@/lib/server/auth';
+import { recordAudit } from '@/lib/server/audit';
+import { handleRouteError, parseJsonBody } from '@/lib/server/route-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,11 +31,11 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const denied = await requireEditor(request);
-  if (denied) return denied;
+  const auth = await authorize(request);
+  if (!auth.ok) return auth.response;
   try {
-    const parsed = seasonSchema.safeParse(await request.json());
-    if (!parsed.success) return apiError('Données de saison invalides.', 400);
+    const parsed = await parseJsonBody(request, seasonSchema, 'Données de saison invalides.');
+    if (!parsed.ok) return parsed.response;
     const season = await prisma.$transaction(async (tx) => {
       if (parsed.data.isCurrent) {
         await tx.season.updateMany({ where: { isCurrent: true }, data: { isCurrent: false } });
@@ -46,9 +48,20 @@ export async function POST(request: NextRequest) {
         },
       });
     });
+    await recordAudit({
+      request,
+      userId: auth.user.id,
+      action: 'CREATE',
+      entity: 'Season',
+      entityId: season.id,
+      after: season,
+    });
     return resourceResponse(season, season.updatedAt);
   } catch (error) {
-    console.error('Failed to create season:', error);
-    return apiError('Impossible de créer la saison. Vérifiez qu’une saison portant ce libellé n’existe pas déjà.');
+    return handleRouteError(
+      error,
+      'Impossible de créer la saison. Vérifiez qu’une saison portant ce libellé n’existe pas déjà.',
+      'seasons:post',
+    );
   }
 }
