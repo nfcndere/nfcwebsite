@@ -20,6 +20,16 @@ export const metadata: Metadata = {
     siteName: "Ngaoundéré FC",
     locale: "fr_CM",
     type: "website",
+    images: [{ url: "/logo.png", width: 512, height: 512, alt: "Logo Ngaoundéré FC" }],
+  },
+  icons: {
+    icon: [
+      { url: "/logo.png", type: "image/png" },
+    ],
+    shortcut: ["/logo.png"],
+    apple: [
+      { url: "/logo.png", type: "image/png" },
+    ],
   },
   alternates: { canonical: '/' },
 };
