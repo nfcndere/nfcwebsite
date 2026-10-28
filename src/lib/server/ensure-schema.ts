@@ -108,6 +108,7 @@ const IDEMPOTENT_DDL_STATEMENTS: string[] = [
 
   // 3. Index idempotents
   `CREATE UNIQUE INDEX IF NOT EXISTS "Season_label_key" ON "Season"("label")`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Season_one_current_key" ON "Season"("isCurrent") WHERE "isCurrent" = true`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "ClubStanding_seasonId_key" ON "ClubStanding"("seasonId")`,
   `CREATE INDEX IF NOT EXISTS "ClubStandingHistory_seasonId_createdAt_idx" ON "ClubStandingHistory"("seasonId", "createdAt")`,
   `CREATE INDEX IF NOT EXISTS "ApiRateLimitBucket_expiresAt_idx" ON "ApiRateLimitBucket"("expiresAt")`,
@@ -121,6 +122,19 @@ const IDEMPOTENT_DDL_STATEMENTS: string[] = [
   `CREATE INDEX IF NOT EXISTS "Player_deletedAt_idx" ON "Player"("deletedAt")`,
   `CREATE INDEX IF NOT EXISTS "Match_deletedAt_idx" ON "Match"("deletedAt")`,
   `CREATE INDEX IF NOT EXISTS "FormSubmission_type_followUpStatus_idx" ON "FormSubmission"("type", "followUpStatus")`,
+
+  // 4. Clés étrangères idempotentes (ignorées si déjà présentes)
+  ...[
+    `ALTER TABLE "ClubStanding" ADD CONSTRAINT "ClubStanding_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "Season"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    `ALTER TABLE "ClubStanding" ADD CONSTRAINT "ClubStanding_updatedById_fkey" FOREIGN KEY ("updatedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE`,
+    `ALTER TABLE "ClubStandingHistory" ADD CONSTRAINT "ClubStandingHistory_seasonId_fkey" FOREIGN KEY ("seasonId") REFERENCES "Season"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    `ALTER TABLE "ClubStandingHistory" ADD CONSTRAINT "ClubStandingHistory_changedById_fkey" FOREIGN KEY ("changedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE`,
+    `ALTER TABLE "PasswordResetToken" ADD CONSTRAINT "PasswordResetToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    `ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE`,
+    `ALTER TABLE "PushSubscription" ADD CONSTRAINT "PushSubscription_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+  ].map(
+    (sql) => `DO $$ BEGIN ${sql}; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$`,
+  ),
 ];
 
 /**
@@ -130,12 +144,14 @@ const IDEMPOTENT_DDL_STATEMENTS: string[] = [
  */
 export async function ensureDatabaseSchema(force = false): Promise<void> {
   if (schemaEnsured && !force) return;
-  try {
-    for (const statement of IDEMPOTENT_DDL_STATEMENTS) {
+  let failures = 0;
+  for (const statement of IDEMPOTENT_DDL_STATEMENTS) {
+    try {
       await prisma.$executeRawUnsafe(statement);
+    } catch (error) {
+      failures += 1;
+      console.error('[ensureDatabaseSchema] Instruction DDL en échec :', statement.slice(0, 120), error);
     }
-    schemaEnsured = true;
-  } catch (error) {
-    console.error('[ensureDatabaseSchema] Échec partiel de synchronisation DDL :', error);
   }
+  schemaEnsured = failures === 0;
 }
