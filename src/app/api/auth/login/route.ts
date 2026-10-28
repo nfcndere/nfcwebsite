@@ -7,6 +7,7 @@ import { enforceRateLimit } from '@/lib/server/rate-limit';
 import { parseJsonBody, handleRouteError } from '@/lib/server/route-utils';
 import { verifyPassword } from '@/lib/server/passwords';
 import { recordAudit } from '@/lib/server/audit';
+import { ensureDatabaseSchema } from '@/lib/server/ensure-schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,8 @@ export async function POST(request: NextRequest) {
     const parsed = await parseJsonBody(request, loginSchema, 'Email et mot de passe valides obligatoires.');
     if (!parsed.ok) return parsed.response;
     const { email, password, scope } = parsed.data;
+
+    await ensureDatabaseSchema();
 
     const message = 'Trop de tentatives de connexion. Réessayez plus tard.';
     const limitedByIp = await enforceRateLimit(request, 'login-ip', 20, LOGIN_WINDOW_MS, { message });
