@@ -33,7 +33,7 @@ model User {
   mustChangePassword Boolean   @default(false)
   lastLoginAt        DateTime?
   createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  updatedAt          DateTime  @default(now()) @updatedAt
 
   articles             Article[]
   uploadedMedia        Media[]
@@ -91,7 +91,7 @@ model PushSubscription {
   user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userAgent String?
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model Season {
@@ -103,7 +103,7 @@ model Season {
   clubStanding        ClubStanding?
   clubStandingHistory ClubStandingHistory[]
   createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  updatedAt           DateTime              @default(now()) @updatedAt
 }
 
 model ClubStanding {
@@ -120,7 +120,7 @@ model ClubStanding {
   updatedById  String?
   season       Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   updatedBy    User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime @default(now()) @updatedAt
 }
 
 // ===================================
@@ -148,7 +148,7 @@ model ClubStandingHistory {
 model ClubSetting {
   key       String   @id
   value     String
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model ApiRateLimitBucket {
@@ -205,7 +205,7 @@ model Article {
   // Suppression logique : les lectures publiques filtrent deletedAt = null.
   deletedAt   DateTime?
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  updatedAt   DateTime  @default(now()) @updatedAt
 
   @@index([deletedAt])
 }
@@ -231,7 +231,7 @@ model Player {
   // Suppression logique : les lectures publiques filtrent deletedAt = null.
   deletedAt   DateTime?
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  updatedAt   DateTime  @default(now()) @updatedAt
 
   // Médias associés à ce joueur (galerie spécifique joueur)
   media Media[]
@@ -257,7 +257,7 @@ model Match {
   // Suppression logique : les lectures publiques filtrent deletedAt = null.
   deletedAt   DateTime?
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  updatedAt   DateTime  @default(now()) @updatedAt
 
   @@index([deletedAt])
 }
@@ -274,7 +274,7 @@ model Sponsor {
   // Seuls les partenaires actifs sont servis par l'API publique.
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 // ===================================

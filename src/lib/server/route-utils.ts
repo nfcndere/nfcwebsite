@@ -4,6 +4,7 @@ import type { ZodType, ZodTypeDef } from 'zod';
 import { Prisma } from '@prisma/client';
 import { apiError } from '@/lib/api-response';
 import { AuthConfigError, securityConfigErrorResponse } from '@/lib/server/auth';
+import { ensureDatabaseSchema } from '@/lib/server/ensure-schema';
 
 type ParseResult<T> = { ok: true; data: T; response?: undefined } | { ok: false; data?: undefined; response: NextResponse };
 
@@ -45,7 +46,8 @@ export function handleRouteError(error: unknown, fallbackMessage: string, contex
     if (error.code === 'P2002') return apiError('Une ressource avec cet identifiant unique existe déjà.', 409);
     if (error.code === 'P2003') return apiError('Référence invalide vers une ressource liée.', 400);
     if (error.code === 'P2021' || error.code === 'P2022') {
-      console.error(`[${context}] Schéma de base incomplet (exécutez "prisma migrate deploy") :`, error.message);
+      console.error(`[${context}] Schéma de base incomplet (tentative d'auto-migration) :`, error.message);
+      void ensureDatabaseSchema(true);
       return apiError(`${fallbackMessage} Base de données non migrée.`, 503);
     }
   }

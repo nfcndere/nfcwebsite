@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { isCloudinaryConfigured } from '@/lib/server/cloudinary';
+import { ensureDatabaseSchema } from '@/lib/server/ensure-schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,12 +56,24 @@ export async function GET() {
         'PasswordResetToken',
         'PushSubscription',
       ];
-      const existing = await prisma.$queryRaw<{ tablename: string }[]>`
+      let existing = await prisma.$queryRaw<{ tablename: string }[]>`
         SELECT tablename FROM pg_tables WHERE schemaname = current_schema()
       `;
-      const existingSet = new Set(existing.map((row) => row.tablename));
+      let existingSet = new Set(existing.map((row) => row.tablename));
       tables = requiredTables.map((name) => ({ name, present: existingSet.has(name) }));
       missingTables = tables.filter((table) => !table.present).map((table) => table.name);
+
+      if (missingTables.length > 0) {
+        await ensureDatabaseSchema(true);
+        existing = await prisma.$queryRaw<{ tablename: string }[]>`
+          SELECT tablename FROM pg_tables WHERE schemaname = current_schema()
+        `;
+        existingSet = new Set(existing.map((row) => row.tablename));
+        tables = requiredTables.map((name) => ({ name, present: existingSet.has(name) }));
+        missingTables = tables.filter((table) => !table.present).map((table) => table.name);
+      } else {
+        await ensureDatabaseSchema(false);
+      }
     } catch (error) {
       console.error('[health] Base de données injoignable :', error);
     }
